@@ -9,4 +9,5 @@ def load_data():
     response = supabase.table('verduras').select('*').execute()
     # Convertir los datos en un DataFrame de pandas
     df = pd.DataFrame(response.data)
+    print(df.columns) # Añadir esta línea para verificar las columnas
     return df
