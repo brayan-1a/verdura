@@ -1,5 +1,5 @@
 pandas
 numpy
 supabase
-scikit-learn
+scikit
 streamlit
