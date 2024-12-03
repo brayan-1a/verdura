@@ -87,3 +87,4 @@ if st.sidebar.checkbox("Mostrar Predicciones"):
 if st.sidebar.checkbox("Mostrar Datos Originales"):
     df = load_data()
     st.write(df)
+
