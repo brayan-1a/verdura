@@ -24,10 +24,15 @@ inventario_actual = st.sidebar.number_input("Inventario Actual", min_value=0)
 
 # Entrenar el modelo
 if st.sidebar.button("Entrenar Modelo"):
+    df = load_data()
+    st.write("Datos antes de preprocesar:", df.head())  # Verificar datos cargados
+    df = preprocess_data(df)
+    st.write("Datos después de preprocesar:", df.head())  # Verificar datos preprocesados
     model = train_model()
     st.write("Modelo entrenado con éxito.")
 else:
     model = None
+
 
 # Hacer predicciones
 if model and st.sidebar.button("Hacer Predicciones"):
