@@ -10,3 +10,4 @@ def load_data():
     print("Primeras filas del DataFrame:", df.head())
     return df
 
+

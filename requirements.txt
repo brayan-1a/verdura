@@ -3,3 +3,4 @@ numpy
 supabase
 scikit
 streamlit
+sklearn

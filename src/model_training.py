@@ -15,6 +15,15 @@ def train_model():
     X = df.drop(columns=columnas_presentes)
     y = df['cantidad_vendida']
     
+    # Verificar y convertir todos los datos a numéricos
+    print("Tipos de datos antes de convertir:", X.dtypes)
+    X = X.apply(pd.to_numeric, errors='coerce')
+    print("Tipos de datos después de convertir:", X.dtypes)
+    
+    # Asegurarse de que no hay NaNs
+    if X.isnull().values.any():
+        raise ValueError("Hay valores NaNs en el DataFrame después de convertir a numéricos")
+    
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
@@ -24,6 +33,7 @@ def train_model():
 
 if __name__ == "__main__":
     train_model()
+
 
 
 
