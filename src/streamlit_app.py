@@ -22,16 +22,6 @@ producto = st.sidebar.selectbox("Producto", ['tomate', 'lechuga', 'pepino', 'zan
 fecha = st.sidebar.date_input("Fecha")
 inventario_actual = st.sidebar.number_input("Inventario Actual", min_value=0)
 
-# Cargar y preprocesar los datos
-df = load_data()
-df = preprocess_data(df)
-
-# Seleccionar datos relevantes
-X = df.drop(columns=['cantidad_vendida', 'fecha', 'nombre_cliente', 'dia_semana', 'notas_adicionales'])
-y = df['cantidad_vendida']
-dates = df['fecha']
-productos = df['producto']
-
 # Entrenar el modelo
 if st.sidebar.button("Entrenar Modelo"):
     model = train_model()
@@ -41,6 +31,11 @@ else:
 
 # Hacer predicciones
 if model and st.sidebar.button("Hacer Predicciones"):
+    df = load_data()
+    print("Datos cargados:", df.head())  # Verificar los datos cargados
+    df = preprocess_data(df)
+    print("Datos preprocesados:", df.head())  # Verificar los datos preprocesados
+
     X_new = pd.DataFrame({
         'producto': [producto],
         'precio': [df['precio'].mean()],
@@ -61,7 +56,7 @@ if model and st.sidebar.button("Hacer Predicciones"):
     X_new = pd.get_dummies(X_new, columns=['producto', 'proveedor', 'ubicacion', 'condiciones_climaticas'], drop_first=True)
     
     # Asegurarse de que las columnas coincidan
-    X_new = X_new.reindex(columns = X.columns, fill_value=0)
+    X_new = X_new.reindex(columns = df.columns, fill_value=0)
     
     prediccion = model.predict(X_new)[0]
     st.write(f"Predicción de ventas para el {fecha}: {prediccion} unidades.")
@@ -83,8 +78,6 @@ if st.sidebar.checkbox("Mostrar Predicciones"):
 
 # Mostrar datos originales
 if st.sidebar.checkbox("Mostrar Datos Originales"):
+    df = load_data()
     st.write(df)
 
-# Ejecución de la aplicación
-if __name__ == "__main__":
-    st.run()
