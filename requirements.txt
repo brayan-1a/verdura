@@ -1,0 +1,5 @@
+pandas
+numpy
+supabase-py
+scikit-learn
+streamlit
