@@ -35,37 +35,41 @@ else:
 
 
 # Hacer predicciones
+# Hacer predicciones para el stock
 if model and st.sidebar.button("Hacer Predicciones"):
     df = load_data()
-    print("Datos cargados:", df.head())  # Verificar los datos cargados
     df = preprocess_data(df)
-    print("Datos preprocesados:", df.head())  # Verificar los datos preprocesados
 
+    # Crear el nuevo DataFrame para la predicción
     X_new = pd.DataFrame({
         'producto': [producto],
         'precio': [df['precio'].mean()],
-        'promocion': [0],
+        'promocion': [0],  # Ajustar según tus datos
         'proveedor': [df['proveedor'].mode()[0]],
         'ubicacion': [df['ubicacion'].mode()[0]],
         'condiciones_climaticas': [df['condiciones_climaticas'].mode()[0]],
         'dia': [fecha.day],
         'mes': [fecha.month],
         'año': [fecha.year],
-        'descuento_aplicado': [0],
+        'descuento_aplicado': [0],  # O ajustarlo según sea necesario
         'tipo_producto': [df['tipo_producto'].mode()[0]],
         'categoria_producto': [df['categoria_producto'].mode()[0]],
         'hora_venta': [df['hora_venta'].mode()[0]],
         'canal_venta': [df['canal_venta'].mode()[0]],
         'campana_marketing': [0]
     })
+    
+    # Convertir las variables categóricas en variables dummy
     X_new = pd.get_dummies(X_new, columns=['producto', 'proveedor', 'ubicacion', 'condiciones_climaticas'], drop_first=True)
     
-    # Asegurarse de que las columnas coincidan
+    # Asegurar que las columnas coincidan con las del modelo
     X_new = X_new.reindex(columns = df.columns, fill_value=0)
-    
+
+    # Predecir el stock necesario
     prediccion = model.predict(X_new)[0]
-    st.write(f"Predicción de ventas para el {fecha}: {prediccion} unidades.")
+    st.write(f"Predicción de stock necesario para el {fecha}: {prediccion} unidades.")
     
+    # Comparar con el inventario actual
     if inventario_actual < prediccion:
         st.write("Se recomienda comprar más stock.")
     else:
@@ -73,6 +77,7 @@ if model and st.sidebar.button("Hacer Predicciones"):
     
     # Guardar la predicción
     save_predictions([prediccion], [fecha], [producto])
+
 
 # Mostrar predicciones
 if st.sidebar.checkbox("Mostrar Predicciones"):
