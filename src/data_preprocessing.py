@@ -6,6 +6,7 @@ def preprocess_data(df):
         df['fecha'] = pd.to_datetime(df['fecha'])
         print("Fecha después de la conversión:", df['fecha'].head())
     else:
+        print("Columnas disponibles en el DataFrame:", df.columns)
         raise KeyError("La columna 'fecha' no se encuentra en el DataFrame")
     
     # Extraer día, mes y año de la fecha
@@ -17,8 +18,6 @@ def preprocess_data(df):
     df = pd.get_dummies(df, columns=['producto', 'proveedor', 'ubicacion', 'metodo_pago', 'condiciones_climaticas', 'nombre_cliente', 
                                       'dia_semana', 'tipo_producto', 'categoria_producto', 'canal_venta'], drop_first=True)
     
-    # Manejar valores nulos, si es necesario (puedes rellenar con ceros o la media, dependiendo del caso)
-    df = df.fillna(0)  # O usa df.fillna(df.mean()) para reemplazar con la media de cada columna
     
     return df
 
