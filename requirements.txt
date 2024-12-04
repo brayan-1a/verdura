@@ -1,6 +1,6 @@
 pandas
 numpy
 supabase
-scikit
+scikit-learn
 streamlit
 
