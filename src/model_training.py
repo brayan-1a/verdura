@@ -20,9 +20,17 @@ def train_model():
     X = X.apply(pd.to_numeric, errors='coerce')
     print("Tipos de datos después de convertir:", X.dtypes)
     
-    # Asegurarse de que no hay NaNs
+    # Identificar y manejar los NaNs
     if X.isnull().values.any():
-        raise ValueError("Hay valores NaNs en el DataFrame después de convertir a numéricos")
+        print("Valores NaNs encontrados en las siguientes columnas:")
+        print(X.isnull().sum())
+        print("Primeras filas con NaNs:")
+        print(X[X.isnull().any(axis=1)].head())
+        # Manejo de NaNs: opción 1 - eliminar filas con NaNs
+        X = X.dropna()
+        y = y[X.index]
+        # Manejo de NaNs: opción 2 - rellenar NaNs con un valor (e.g., 0)
+        # X = X.fillna(0)
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     model = RandomForestRegressor(n_estimators=100, random_state=42)
@@ -33,6 +41,7 @@ def train_model():
 
 if __name__ == "__main__":
     train_model()
+
 
 
 
