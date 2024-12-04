@@ -1,20 +1,27 @@
 import streamlit as st
 import pandas as pd
-import joblib
-from data_loading import load_local_data
+from data_loading import load_data_from_supabase
 from predict import predict_inventory
 from model_training import train_random_forest
+from config import MODEL_FEATURES
 
 def main():
     st.title('Predicción de Inventario de Verduras')
     
-    # Cargar datos
-    data = load_local_data()
-    
+    # Cargar datos directamente desde Supabase
+    try:
+        data = load_data_from_supabase()
+        st.success('Datos cargados correctamente desde Supabase')
+    except Exception as e:
+        st.error(f"Error al cargar datos: {e}")
+        return
+
     # Opción de entrenar modelo
     if st.button('Entrenar Modelo'):
         model = train_random_forest(data)
         st.success('Modelo entrenado exitosamente')
+    
+    # Resto del código de predicción...
     
     # Predicción de inventario
     st.header('Predecir Inventario')
