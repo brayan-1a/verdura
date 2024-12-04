@@ -18,10 +18,10 @@ def main():
 
     # Opción de entrenar modelo
     if st.button('Entrenar Modelo'):
-        model = train_random_forest(data)
-        st.success('Modelo entrenado exitosamente')
-    
-    # Resto del código de predicción...
+        model, mse, r2 = train_random_forest(data)
+        st.success(f'Modelo entrenado exitosamente')
+        st.write(f'Error Cuadrático Medio: {mse}')
+        st.write(f'Score R²: {r2}')
     
     # Predicción de inventario
     st.header('Predecir Inventario')

@@ -2,7 +2,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import joblib
-import pandas as pd
 import numpy as np
 
 from config import MODEL_FEATURES, TARGET_VARIABLE, RF_PARAMS, MODELS_DIR
@@ -11,7 +10,7 @@ from data_preprocessing import preprocess_data
 def train_random_forest(df):
     """Entrenar modelo Random Forest para predicción de inventario"""
     # Preprocesar datos
-    df_processed, label_encoders, scaler = preprocess_data(df)
+    df_processed, scaler = preprocess_data(df)
     
     # Separar características y target
     X = df_processed[MODEL_FEATURES]
@@ -33,12 +32,11 @@ def train_random_forest(df):
     print(f"Mean Squared Error: {mse}")
     print(f"R² Score: {r2}")
     
-    # Guardar modelo y metadatos
+    # Guardar modelo y scaler
     joblib.dump(rf_model, f'{MODELS_DIR}/random_forest_model.joblib')
-    joblib.dump(label_encoders, f'{MODELS_DIR}/label_encoders.joblib')
     joblib.dump(scaler, f'{MODELS_DIR}/scaler.joblib')
     
-    return rf_model
+    return rf_model, mse, r2
 
 
 

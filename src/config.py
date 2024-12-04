@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuraciones de Supabase
-SUPABASE_URL = os.getenv('https://odlosqyzqrggrhvkdovj.supabase.co')
-SUPABASE_KEY = os.getenv('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck')
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
 # Configuraciones de modelo
 MODEL_FEATURES = [
@@ -36,3 +36,7 @@ RF_PARAMS = {
 # Rutas de directorios
 DATA_DIR = 'data/'
 MODELS_DIR = 'models/'
+
+# Validar configuraciones
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Supabase URL y KEY son requeridos. Configure el archivo .env")
