@@ -1,26 +1,29 @@
-from supabase import create_client, Client
+import joblib
 import pandas as pd
-from config import SUPABASE_URL, SUPABASE_KEY
-from model_training import train_model
-from data_loading import load_data
-from data_preprocessing import preprocess_data
+import numpy as np
+from config import MODELS_DIR, MODEL_FEATURES
 
-def save_predictions(predictions, dates, productos):
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    data = {'fecha': dates, 'producto': productos, 'cantidad_vendida_predicha': predictions, 'modelo': 'RandomForest'}
-    for i in range(len(dates)):
-        row = {key: data[key][i] for key in data}
-        supabase.table('predicciones').insert(row).execute()
+def load_model():
+    """Cargar modelo entrenado"""
+    model = joblib.load(f'{MODELS_DIR}/random_forest_model.joblib')
+    label_encoders = joblib.load(f'{MODELS_DIR}/label_encoders.joblib')
+    scaler = joblib.load(f'{MODELS_DIR}/scaler.joblib')
+    
+    return model, label_encoders, scaler
 
-def main():
-    model = train_model()
-    df = load_data()
-    df = preprocess_data(df)
-    X = df.drop(columns=['cantidad_vendida', 'fecha', 'nombre_cliente', 'dia_semana', 'notas_adicionales'])
-    dates = df['fecha'].tolist()
-    productos = df['producto'].tolist()
-    predictions = model.predict(X).tolist()
-    save_predictions(predictions, dates, productos)
-
-if __name__ == "__main__":
-    main()
+def predict_inventory(new_data):
+    """Predecir inventario para nuevos datos"""
+    model, label_encoders, scaler = load_model()
+    
+    # Preprocesar nuevos datos (similar a entrenamiento)
+    for col, le in label_encoders.items():
+        new_data[col] = le.transform(new_data[col].astype(str))
+    
+    # Escalar características
+    numeric_features = new_data[MODEL_FEATURES].select_dtypes(include=[np.number]).columns
+    new_data[numeric_features] = scaler.transform(new_data[numeric_features])
+    
+    # Predecir
+    predictions = model.predict(new_data[MODEL_FEATURES])
+    
+    return predictions

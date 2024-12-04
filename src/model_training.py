@@ -1,46 +1,44 @@
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from data_loading import load_data
+from sklearn.metrics import mean_squared_error, r2_score
+import joblib
+import pandas as pd
+import numpy as np
+
+from config import MODEL_FEATURES, TARGET_VARIABLE, RF_PARAMS, MODELS_DIR
 from data_preprocessing import preprocess_data
 
-def train_model():
-    df = load_data()
-    df = preprocess_data(df)
+def train_random_forest(df):
+    """Entrenar modelo Random Forest para predicción de inventario"""
+    # Preprocesar datos
+    df_processed, label_encoders, scaler = preprocess_data(df)
     
-    # Verificar las columnas antes de eliminar
-    columnas_a_eliminar = ['inventario_inicial', 'fecha', 'nombre_cliente', 'dia_semana', 'notas_adicionales']
-    columnas_presentes = [col for col in columnas_a_eliminar if col in df.columns]
+    # Separar características y target
+    X = df_processed[MODEL_FEATURES]
+    y = df_processed[TARGET_VARIABLE]
     
-    X = df.drop(columns=columnas_presentes)
-    y = df['cantidad_vendida']
-    
-    # Verificar y convertir todos los datos a numéricos
-    print("Tipos de datos antes de convertir:", X.dtypes)
-    X = X.apply(pd.to_numeric, errors='coerce')
-    print("Tipos de datos después de convertir:", X.dtypes)
-    
-    # Identificar y manejar los NaNs
-    if X.isnull().values.any():
-        print("Valores NaNs encontrados en las siguientes columnas:")
-        print(X.isnull().sum())
-        print("Primeras filas con NaNs:")
-        print(X[X.isnull().any(axis=1)].head())
-        # Manejo de NaNs: opción 1 - eliminar filas con NaNs
-        X = X.dropna()
-        y = y[X.index]
-        # Manejo de NaNs: opción 2 - rellenar NaNs con un valor (e.g., 0)
-        # X = X.fillna(0)
-    
+    # Split de datos
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
-    score = model.score(X_test, y_test)
-    print(f"Precisión del modelo: {score}")
-    return model
-
-if __name__ == "__main__":
-    train_model()
+    
+    # Inicializar y entrenar modelo
+    rf_model = RandomForestRegressor(**RF_PARAMS)
+    rf_model.fit(X_train, y_train)
+    
+    # Predecir y evaluar
+    y_pred = rf_model.predict(X_test)
+    
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    
+    print(f"Mean Squared Error: {mse}")
+    print(f"R² Score: {r2}")
+    
+    # Guardar modelo y metadatos
+    joblib.dump(rf_model, f'{MODELS_DIR}/random_forest_model.joblib')
+    joblib.dump(label_encoders, f'{MODELS_DIR}/label_encoders.joblib')
+    joblib.dump(scaler, f'{MODELS_DIR}/scaler.joblib')
+    
+    return rf_model
 
 
 
