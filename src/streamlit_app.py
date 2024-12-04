@@ -33,8 +33,10 @@ def main():
     
     if st.button('Predecir'):
         new_df = pd.DataFrame([new_data])
-        prediction = predict_inventory(new_df)
+        prediction = predict_inventory(new_df)  # Realizar predicción
         st.write(f'Inventario Final Predicho: {prediction[0]}')
 
 if __name__ == '__main__':
     main()
+
+
