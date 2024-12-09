@@ -53,6 +53,7 @@ def cross_validate_model(model, df, target_col, feature_cols, cv=5):
     X = df[feature_cols]
     y = df[target_col]
     
+    # Usamos la métrica negativa de MSE porque cross_val_score minimiza las métricas
     mse_scorer = make_scorer(mean_squared_error, greater_is_better=False)
     scores = cross_val_score(model, X, y, cv=cv, scoring=mse_scorer)
     
@@ -62,5 +63,6 @@ def cross_validate_model(model, df, target_col, feature_cols, cv=5):
     std_mse = mse_scores.std()
 
     return mean_mse, std_mse
+
 
 
