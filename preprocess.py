@@ -23,5 +23,21 @@ def normalize_data(df, columns):
         df[col] = (df[col] - df[col].mean()) / df[col].std()
     return df
 
+def add_features(df):
+    """Agrega nuevas características al dataframe."""
+    # Diferencia de inventario
+    df["diferencia_inventario"] = df["inventario_inicial"] - df["inventario_final"]
+
+    # Porcentaje de desperdicio
+    df["porcentaje_desperdicio"] = (df["desperdicio"] / df["inventario_inicial"]) * 100
+    df["porcentaje_desperdicio"].fillna(0, inplace=True)  # Reemplazar NaN por 0
+
+    # Variables temporales
+    df["dia_semana"] = pd.to_datetime(df["fecha"]).dt.dayofweek  # Lunes=0, Domingo=6
+    df["es_fin_de_semana"] = df["dia_semana"].apply(lambda x: 1 if x >= 5 else 0)  # 1: Fin de semana, 0: Día laboral
+
+    return df
+
+
 
 

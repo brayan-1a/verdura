@@ -1,6 +1,6 @@
 import streamlit as st
 from config import get_supabase_client
-from preprocess import load_and_select_data, clean_data, normalize_data
+from preprocess import load_and_select_data, clean_data, normalize_data, add_features
 from model_train import train_decision_tree, train_random_forest
 
 # Conexión con Supabase
@@ -43,14 +43,29 @@ try:
 except Exception as e:
     st.error(f"Error durante la normalización: {e}")
 
+# Agregar nuevas características
+try:
+    df_features = add_features(df_clean)
+    st.write("Datos con nuevas características:", df_features.head())
+except Exception as e:
+    st.error(f"Error al agregar características: {e}")
+
 # Definir columnas de entrada y objetivo
-feature_cols = ["precio", "cantidad_vendida", "inventario_inicial", "desperdicio"]
+feature_cols = [
+    "precio",
+    "cantidad_vendida",
+    "inventario_inicial",
+    "desperdicio",
+    "diferencia_inventario",
+    "porcentaje_desperdicio",
+    "es_fin_de_semana"
+]
 target_col = "inventario_final"
 
 # Entrenar Árbol de Decisión
 if st.button("Entrenar Árbol de Decisión"):
     try:
-        model_tree, metrics_tree = train_decision_tree(df_norm, target_col, feature_cols)
+        model_tree, metrics_tree = train_decision_tree(df_features, target_col, feature_cols)
         st.write("Métricas del Árbol de Decisión:", metrics_tree)
     except Exception as e:
         st.error(f"Error al entrenar Árbol de Decisión: {e}")
@@ -58,10 +73,11 @@ if st.button("Entrenar Árbol de Decisión"):
 # Entrenar Random Forest
 if st.button("Entrenar Random Forest"):
     try:
-        model_rf, metrics_rf = train_random_forest(df_norm, target_col, feature_cols)
+        model_rf, metrics_rf = train_random_forest(df_features, target_col, feature_cols)
         st.write("Métricas del Random Forest:", metrics_rf)
     except Exception as e:
         st.error(f"Error al entrenar Random Forest: {e}")
+
 
 
 
