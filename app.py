@@ -1,6 +1,6 @@
 import streamlit as st
 from config import get_supabase_client
-from preprocess import load_and_select_data
+from preprocess import load_and_select_data, clean_data, normalize_data
 
 # Conexión con Supabase
 supabase = get_supabase_client()
@@ -20,19 +20,26 @@ selected_columns = [
 ]
 
 # Cargar los datos
-df = load_and_select_data(supabase, "verduras", selected_columns)
+st.title("Análisis de Predicción de Stock - Verduras")
+try:
+    df = load_and_select_data(supabase, "verduras", selected_columns)
+    st.write("Datos seleccionados:", df.head())
+except Exception as e:
+    st.error(f"Error al cargar los datos: {e}")
 
 # Limpiar los datos
-df_clean = clean_data(df)
-st.write("Datos Limpiados:", df_clean)
+try:
+    df_clean = clean_data(df)
+    st.write("Datos Limpiados:", df_clean.head())
+except Exception as e:
+    st.error(f"Error durante la limpieza de datos: {e}")
 
 # Normalizar columnas numéricas
 numeric_columns = ["precio", "cantidad_vendida", "inventario_inicial", "inventario_final", "desperdicio"]
-df_norm = normalize_data(df_clean, numeric_columns)
-st.write("Datos Normalizados:", df_norm)
+try:
+    df_norm = normalize_data(df_clean, numeric_columns)
+    st.write("Datos Normalizados:", df_norm.head())
+except Exception as e:
+    st.error(f"Error durante la normalización: {e}")
 
-
-# Mostrar los datos seleccionados en Streamlit
-st.title("Análisis de Predicción de Stock - Verduras")
-st.write("Datos seleccionados:", df)
 

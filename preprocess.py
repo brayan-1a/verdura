@@ -11,7 +11,7 @@ def clean_data(df):
     df.fillna(df.mean(numeric_only=True), inplace=True)  # Reemplazar nulos en columnas numéricas con la media
     df.fillna("Sin datos", inplace=True)  # Reemplazar nulos en texto con un valor predeterminado
 
-    # Eliminar columnas innecesarias (si las hay)
+    # Eliminar columnas innecesarias
     if "nombre_cliente" in df.columns:
         df.drop(columns=["nombre_cliente"], inplace=True)
 
@@ -22,4 +22,5 @@ def normalize_data(df, columns):
     for col in columns:
         df[col] = (df[col] - df[col].mean()) / df[col].std()
     return df
+
 
