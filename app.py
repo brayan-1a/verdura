@@ -1,10 +1,10 @@
 import streamlit as st
+import matplotlib.pyplot as plt
 from config import get_supabase_client
 from preprocess import load_and_select_data, clean_data, normalize_data, add_features
 from model_train import train_decision_tree, train_random_forest, cross_validate_model
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
-import matplotlib.pyplot as plt
 
 # Conexión con Supabase
 supabase = get_supabase_client()
@@ -65,21 +65,61 @@ feature_cols = [
 ]
 target_col = "inventario_final"
 
-# Entrenar Árbol de Decisión
-if st.button("Entrenar Árbol de Decisión"):
-    try:
-        model_tree, metrics_tree = train_decision_tree(df_features, target_col, feature_cols)
-        st.write("Métricas del Árbol de Decisión:", metrics_tree)
-    except Exception as e:
-        st.error(f"Error al entrenar Árbol de Decisión: {e}")
+# Pestañas de navegación
+st.sidebar.title("Navegación")
+page = st.sidebar.radio("Selecciona una pestaña", ["Predicción", "Gráficos de Stock", "Procedimiento"])
 
-# Entrenar Random Forest
-if st.button("Entrenar Random Forest"):
-    try:
-        model_rf, metrics_rf = train_random_forest(df_features, target_col, feature_cols)
-        st.write("Métricas del Random Forest:", metrics_rf)
-    except Exception as e:
-        st.error(f"Error al entrenar Random Forest: {e}")
+# Pestaña 1: Selección de datos para hacer la predicción
+if page == "Predicción":
+    st.header("Predicción de Stock de Verduras")
+    st.sidebar.header("Selecciona los datos del producto")
+    producto_seleccionado = st.sidebar.selectbox("Selecciona el producto", df["producto"].unique())
+
+    # Filtrar datos para ese producto
+    producto_data = df[df["producto"] == producto_seleccionado]
+
+    # Mostrar los datos seleccionados
+    st.write(f"Datos de {producto_seleccionado}:")
+    st.write(producto_data)
+
+    # Variables para hacer la predicción
+    cantidad_actual = st.number_input("Cantidad actual en stock", min_value=0, value=int(producto_data["inventario_final"].iloc[0]))
+    promocion = st.checkbox("Promoción activa")
+
+    # Botón de predicción
+    if st.button("Predecir cantidad recomendada para comprar"):
+        model_rf, _ = train_random_forest(df_features, target_col, feature_cols)
+        # Realizar la predicción
+        prediccion = model_rf.predict([[cantidad_actual, promocion]])  # Ajusta las características según tu modelo
+        st.write(f"Recomendación: Comprar {round(prediccion[0], 2)} unidades de {producto_seleccionado}")
+
+# Pestaña 2: Gráficos de stock
+elif page == "Gráficos de Stock":
+    st.header("Gráficos de Inventario")
+    fig, ax = plt.subplots()
+    ax.bar(df["producto"], df["inventario_inicial"], label="Inventario Inicial")
+    ax.bar(df["producto"], df["inventario_final"], label="Inventario Final", alpha=0.5)
+
+    ax.set_xlabel("Producto")
+    ax.set_ylabel("Cantidad")
+    ax.set_title("Comparación de Inventario Inicial vs Final")
+    ax.legend()
+
+    st.pyplot(fig)
+
+# Pestaña 3: Procedimiento y Resultados
+elif page == "Procedimiento":
+    st.header("Procedimiento y Resultados")
+    st.write("Datos de Entrenamiento:")
+    st.write(df_features.head())  # Muestra las primeras filas de los datos preprocesados
+
+    st.write("Procedimiento de Predicción:")
+    st.write("1. Se cargan los datos desde Supabase.")
+    st.write("2. Se realizan transformaciones y limpieza de datos.")
+    st.write("3. Se entrenan modelos de Árbol de Decisión y Random Forest.")
+    st.write("4. Se predicen las cantidades recomendadas a comprar.")
+    
+    # Aquí puedes agregar más detalles de la metodología si lo deseas.
 
 # Validación cruzada para Árbol de Decisión
 if st.button("Validar Árbol de Decisión"):
@@ -99,43 +139,6 @@ if st.button("Validar Random Forest"):
     except Exception as e:
         st.error(f"Error durante la validación cruzada del Random Forest: {e}")
 
-# Visualización de predicciones para Árbol de Decisión
-if st.button("Visualizar Predicciones - Árbol de Decisión"):
-    try:
-        model_tree, _ = train_decision_tree(df_features, target_col, feature_cols)
-        X = df_features[feature_cols]
-        y = df_features[target_col]
-        y_pred = model_tree.predict(X)
-
-        # Crear el gráfico
-        fig, ax = plt.subplots()
-        ax.scatter(y, y_pred, alpha=0.5)
-        ax.plot([y.min(), y.max()], [y.min(), y.max()], color='red', linestyle='--', lw=2)
-        ax.set_xlabel("Valores Reales")
-        ax.set_ylabel("Predicciones")
-        ax.set_title("Árbol de Decisión - Valores Reales vs Predicciones")
-        st.pyplot(fig)
-    except Exception as e:
-        st.error(f"Error al visualizar las predicciones del Árbol de Decisión: {e}")
-
-# Visualización de predicciones para Random Forest
-if st.button("Visualizar Predicciones - Random Forest"):
-    try:
-        model_rf, _ = train_random_forest(df_features, target_col, feature_cols)
-        X = df_features[feature_cols]
-        y = df_features[target_col]
-        y_pred = model_rf.predict(X)
-
-        # Crear el gráfico
-        fig, ax = plt.subplots()
-        ax.scatter(y, y_pred, alpha=0.5)
-        ax.plot([y.min(), y.max()], [y.min(), y.max()], color='red', linestyle='--', lw=2)
-        ax.set_xlabel("Valores Reales")
-        ax.set_ylabel("Predicciones")
-        ax.set_title("Random Forest - Valores Reales vs Predicciones")
-        st.pyplot(fig)
-    except Exception as e:
-        st.error(f"Error al visualizar las predicciones del Random Forest: {e}")
 
 
 
