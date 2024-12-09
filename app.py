@@ -1,6 +1,7 @@
 import streamlit as st
 from config import get_supabase_client
 from preprocess import load_and_select_data, clean_data, normalize_data
+from model_train import train_decision_tree, train_random_forest
 
 # Conexión con Supabase
 supabase = get_supabase_client()
@@ -41,5 +42,26 @@ try:
     st.write("Datos Normalizados:", df_norm.head())
 except Exception as e:
     st.error(f"Error durante la normalización: {e}")
+
+# Definir columnas de entrada y objetivo
+feature_cols = ["precio", "cantidad_vendida", "inventario_inicial", "desperdicio"]
+target_col = "inventario_final"
+
+# Entrenar Árbol de Decisión
+if st.button("Entrenar Árbol de Decisión"):
+    try:
+        model_tree, metrics_tree = train_decision_tree(df_norm, target_col, feature_cols)
+        st.write("Métricas del Árbol de Decisión:", metrics_tree)
+    except Exception as e:
+        st.error(f"Error al entrenar Árbol de Decisión: {e}")
+
+# Entrenar Random Forest
+if st.button("Entrenar Random Forest"):
+    try:
+        model_rf, metrics_rf = train_random_forest(df_norm, target_col, feature_cols)
+        st.write("Métricas del Random Forest:", metrics_rf)
+    except Exception as e:
+        st.error(f"Error al entrenar Random Forest: {e}")
+
 
 
