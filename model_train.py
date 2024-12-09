@@ -1,7 +1,7 @@
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, make_scorer
 
 # Función para entrenar un modelo de Árbol de Decisión
 def train_decision_tree(df, target_col, feature_cols):
@@ -46,4 +46,21 @@ def train_random_forest(df, target_col, feature_cols):
     }
     
     return model, metrics
+
+# Función para realizar validación cruzada
+def cross_validate_model(model, df, target_col, feature_cols, cv=5):
+    """Realiza validación cruzada y devuelve la media y desviación estándar del MSE."""
+    X = df[feature_cols]
+    y = df[target_col]
+    
+    mse_scorer = make_scorer(mean_squared_error, greater_is_better=False)
+    scores = cross_val_score(model, X, y, cv=cv, scoring=mse_scorer)
+    
+    # Convertimos MSE a valores positivos
+    mse_scores = -scores
+    mean_mse = mse_scores.mean()
+    std_mse = mse_scores.std()
+
+    return mean_mse, std_mse
+
 
