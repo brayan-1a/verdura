@@ -24,3 +24,4 @@ def normalize_data(df, columns):
     return df
 
 
+
