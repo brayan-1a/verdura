@@ -86,12 +86,34 @@ if page == "Predicción":
     cantidad_actual = st.number_input("Cantidad actual en stock", min_value=0, value=int(producto_data["inventario_final"].iloc[0]))
     promocion = st.checkbox("Promoción activa")
 
-    # Botón de predicción
+    # Crear el vector de características para la predicción
+    # Asegúrate de que estas son las mismas columnas que usaste en `feature_cols` para entrenar el modelo
+    caracteristicas = [
+        producto_data["precio"].iloc[0],  # Tomamos el precio del producto
+        producto_data["cantidad_vendida"].iloc[0],  # Cantidad vendida
+        producto_data["inventario_inicial"].iloc[0],  # Inventario inicial
+        producto_data["desperdicio"].iloc[0],  # Desperdicio
+        cantidad_actual,  # La cantidad actual en stock que ingresa el usuario
+        promocion,  # Si hay promoción activa (True/False)
+        producto_data["diferencia_inventario"].iloc[0],  # Diferencia de inventario calculada previamente
+        producto_data["porcentaje_desperdicio"].iloc[0],  # Porcentaje de desperdicio calculado previamente
+        producto_data["es_fin_de_semana"].iloc[0]  # Si es fin de semana o no
+    ]
+
+    # Al presionar el botón, hacer la predicción
     if st.button("Predecir cantidad recomendada para comprar"):
-        model_rf, _ = train_random_forest(df_features, target_col, feature_cols)
-        # Realizar la predicción
-        prediccion = model_rf.predict([[cantidad_actual, promocion]])  # Ajusta las características según tu modelo
-        st.write(f"Recomendación: Comprar {round(prediccion[0], 2)} unidades de {producto_seleccionado}")
+        try:
+            # Asegúrate de que el modelo Random Forest esté entrenado
+            model_rf, _ = train_random_forest(df_features, target_col, feature_cols)
+
+            # Realizar la predicción usando el vector de características
+            prediccion = model_rf.predict([caracteristicas])
+
+            # Mostrar la recomendación
+            st.write(f"Recomendación: Comprar {round(prediccion[0], 2)} unidades de {producto_seleccionado}")
+        except Exception as e:
+            st.error(f"Error al realizar la predicción: {e}")
+
 
 # Pestaña 2: Gráficos de stock
 elif page == "Gráficos de Stock":
