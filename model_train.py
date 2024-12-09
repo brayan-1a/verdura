@@ -19,7 +19,7 @@ def train_decision_tree(df, target_col, feature_cols):
     y_pred = model.predict(X_test)
     metrics = {
         "MAE": mean_absolute_error(y_test, y_pred),
-        "RMSE": mean_squared_error(y_test, y_pred, squared=False),
+        "RMSE": mean_squared_error(y_test, y_pred)**0.5,  # Calculado manualmente
         "R2": r2_score(y_test, y_pred)
     }
     
@@ -41,8 +41,9 @@ def train_random_forest(df, target_col, feature_cols):
     y_pred = model.predict(X_test)
     metrics = {
         "MAE": mean_absolute_error(y_test, y_pred),
-        "RMSE": mean_squared_error(y_test, y_pred, squared=False),
+        "RMSE": mean_squared_error(y_test, y_pred)**0.5,  # Calculado manualmente
         "R2": r2_score(y_test, y_pred)
     }
     
     return model, metrics
+
