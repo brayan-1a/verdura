@@ -2,6 +2,8 @@ import streamlit as st
 from config import get_supabase_client
 from preprocess import load_and_select_data, clean_data, normalize_data, add_features
 from model_train import train_decision_tree, train_random_forest, cross_validate_model
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
 # Conexión con Supabase
@@ -134,6 +136,7 @@ if st.button("Visualizar Predicciones - Random Forest"):
         st.pyplot(fig)
     except Exception as e:
         st.error(f"Error al visualizar las predicciones del Random Forest: {e}")
+
 
 
 
