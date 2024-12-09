@@ -87,23 +87,26 @@ elif page == "Consultar Predicciones":
 
     # Hacer la predicción
     if st.button("Predecir"):
-        try:
-            # Crear vector de características
-            caracteristicas = [
-                producto_data["precio"].iloc[0],
-                producto_data["cantidad_vendida"].iloc[0],
-                producto_data["inventario_inicial"].iloc[0],
-                producto_data["desperdicio"].iloc[0],
-                cantidad_actual,  # Cantidad actual en stock
-                promocion,  # Promoción activa
-                producto_data["diferencia_inventario"].iloc[0],
-                producto_data["porcentaje_desperdicio"].iloc[0],
-                producto_data["es_fin_de_semana"].iloc[0]
-            ]
-            prediccion = model.predict([caracteristicas])
-            st.write(f"Recomendación: Comprar {round(prediccion[0], 2)} unidades de {producto_seleccionado}")
-        except Exception as e:
-            st.error(f"Error al realizar la predicción: {e}")
+    try:
+        # Crear vector de características basado en feature_cols
+        caracteristicas = [
+            producto_data["precio"].iloc[0],  # precio
+            producto_data["cantidad_vendida"].iloc[0],  # cantidad_vendida
+            producto_data["inventario_inicial"].iloc[0],  # inventario_inicial
+            producto_data["desperdicio"].iloc[0],  # desperdicio
+            producto_data["diferencia_inventario"].iloc[0],  # diferencia_inventario
+            producto_data["porcentaje_desperdicio"].iloc[0],  # porcentaje_desperdicio
+            producto_data["es_fin_de_semana"].iloc[0]  # es_fin_de_semana
+        ]
+
+        # Realizar la predicción con el modelo cargado
+        prediccion = model.predict([caracteristicas])
+
+        # Mostrar el resultado
+        st.write(f"Recomendación: Comprar {round(prediccion[0], 2)} unidades de {producto_seleccionado}")
+    except Exception as e:
+        st.error(f"Error al realizar la predicción: {e}")
+
 
 
 
