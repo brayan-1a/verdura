@@ -1,3 +1,4 @@
+# train_model.py
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
@@ -26,7 +27,7 @@ def train_model():
     # Entrenar el modelo y mostrar información sobre el proceso
     print("Entrenando el modelo...")
     model.fit(X_train, y_train)
-    
+
     # Realizar predicciones
     y_pred = model.predict(X_test)
 
@@ -39,19 +40,15 @@ def train_model():
     print(f"Coeficiente de Determinación (R^2): {r2:.2f}")
 
     # Guardar el modelo entrenado
-    model_filename = 'modelo_entrenado.pkl'
+    model_filename = 'models/modelo_entrenado.pkl'  # Usar una carpeta específica para el modelo
+    os.makedirs(os.path.dirname(model_filename), exist_ok=True)  # Asegura que la carpeta exista
     with open(model_filename, 'wb') as f:
         pickle.dump(model, f)
 
     print(f"Modelo entrenado y guardado correctamente en '{model_filename}'.")
-    
-    # Mostrar información adicional
-    if r2 > 0.8:
-        print("¡El modelo tiene un buen desempeño!")
-    else:
-        print("El modelo puede mejorar. Ajusta parámetros o usa otro modelo.")
 
-    return model_filename
+    return model_filename, mse, r2
+
 
 
 
