@@ -33,9 +33,6 @@ def main():
         # Entrenar modelo y obtener resultados
         with st.spinner('Entrenando modelo...'):
             modelo, resultados, metricas, importancia = entrenar_y_evaluar(df_preparado)
-            # Agregar las predicciones al DataFrame de resultados
-            resultados['Predicción de Stock Necesario'] = modelo.predict(df_preparado)  # Agregar predicciones
-            
             error_analysis = analizar_errores(resultados)
             
             st.session_state.resultados = resultados
@@ -81,14 +78,15 @@ def main():
         st.subheader('Predicción de Stock Necesario')
         fig_predictions = px.scatter(
             st.session_state.resultados,
-            x='Fecha',  # Asegúrate de que 'Fecha' esté en el DataFrame
-            y='Predicción de Stock Necesario',  # Asegúrate de que esta columna exista
+            x='Fecha',
+            y='Predicción de Stock Necesario',
             title='Predicción de Stock Necesario vs. Fecha'
         )
         st.plotly_chart(fig_predictions)
 
 if __name__ == '__main__':
     main()
+
 
 
 
