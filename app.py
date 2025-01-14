@@ -5,141 +5,182 @@ from supabase import create_client, Client
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.preprocessing import StandardScaler
 import joblib
 import os
+from typing import Dict, Tuple, Any
+from datetime import datetime
+import logging
 
-# Conexión a Supabase
-url = "https://odlosqyzqrggrhvkdovj.supabase.co"  # URL de Supabase
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck"  # Key de Supabase
-supabase: Client = create_client(url, key)
+# Configuración de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Cargar datos de Supabase
-def cargar_datos():
-    # Obtener ventas
-    ventas_query = supabase.table("ventas").select("*").execute()
-    if 'data' not in ventas_query:
-        st.error("No se encontraron datos en la tabla de ventas.")
-        return None
-    ventas_df = pd.DataFrame(ventas_query['data'])
-
-    # Obtener productos
-    productos_query = supabase.table("productos").select("*").execute()
-    productos_df = pd.DataFrame(productos_query['data'])
-
-    # Obtener desperdicio
-    desperdicio_query = supabase.table("desperdicio").select("*").execute()
-    desperdicio_df = pd.DataFrame(desperdicio_query['data'])
-
-    # Obtener promociones
-    promociones_query = supabase.table("promociones").select("*").execute()
-    promociones_df = pd.DataFrame(promociones_query['data'])
-
-    # Obtener condiciones climáticas
-    clima_query = supabase.table("condiciones_climaticas").select("*").execute()
-    clima_df = pd.DataFrame(clima_query['data'])
-
-    # Combinar los datos en un único DataFrame
-    df = pd.merge(ventas_df, productos_df, on="producto_id", how="left")
-    df = pd.merge(df, desperdicio_df, on="producto_id", how="left")
-    df = pd.merge(df, promociones_df, on="producto_id", how="left")
-    df = pd.merge(df, clima_df, left_on="fecha_venta", right_on="fecha", how="left")
-
-    # Limpiar los datos
-    df['cantidad_perdida'].fillna(0, inplace=True)  # Rellenar pérdidas con 0 si no hay datos
-    df['descuento_aplicado'].fillna(0, inplace=True)
-    df['temperatura'].fillna(df['temperatura'].mean(), inplace=True)
-    df['humedad'].fillna(df['humedad'].mean(), inplace=True)
+class SupabaseConnection:
+    def __init__(self, url: str, key: str):
+        self.client: Client = create_client(url, key)
     
-    return df
+    def fetch_table_data(self, table_name: str) -> pd.DataFrame:
+        try:
+            query = self.client.table(table_name).select("*").execute()
+            if 'data' not in query:
+                raise ValueError(f"No se encontraron datos en la tabla {table_name}")
+            return pd.DataFrame(query['data'])
+        except Exception as e:
+            logger.error(f"Error al cargar datos de {table_name}: {str(e)}")
+            raise
 
-# Preprocesamiento y preparación de datos
-def preparar_datos(df):
-    # Convertir fechas
-    df['fecha_venta'] = pd.to_datetime(df['fecha_venta'])
-    
-    # Variables predictoras (features)
-    X = df[['cantidad_vendida', 'descuento_aplicado', 'temperatura', 'humedad', 'cantidad_perdida']]
-    
-    # Variable objetivo (target): la cantidad de productos vendidos
-    y = df['cantidad_vendida']
-    
-    return X, y
+class DataProcessor:
+    @staticmethod
+    def load_and_merge_data(supabase_conn: SupabaseConnection) -> pd.DataFrame:
+        """Carga y combina datos de todas las tablas"""
+        try:
+            # Cargar datos de cada tabla
+            tables = {
+                'ventas': supabase_conn.fetch_table_data("ventas"),
+                'productos': supabase_conn.fetch_table_data("productos"),
+                'desperdicio': supabase_conn.fetch_table_data("desperdicio"),
+                'promociones': supabase_conn.fetch_table_data("promociones"),
+                'clima': supabase_conn.fetch_table_data("condiciones_climaticas")
+            }
+            
+            # Combinar los datos
+            df = tables['ventas']
+            for table_name, table_df in tables.items():
+                if table_name == 'ventas':
+                    continue
+                if table_name == 'clima':
+                    df = pd.merge(df, table_df, left_on="fecha_venta", right_on="fecha", how="left")
+                else:
+                    df = pd.merge(df, table_df, on="producto_id", how="left")
+            
+            return DataProcessor.clean_data(df)
+        except Exception as e:
+            logger.error(f"Error en el procesamiento de datos: {str(e)}")
+            raise
 
-# Entrenar múltiples modelos
-def entrenar_modelos(X_train, y_train, X_test, y_test):
-    modelos = {
-        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
-        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
-        "Linear Regression": LinearRegression(),
-    }
-    
-    resultados = {}
-    
-    for nombre, modelo in modelos.items():
-        modelo.fit(X_train, y_train)
-        y_pred = modelo.predict(X_test)
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-        resultados[nombre] = {
-            "Modelo": nombre,
-            "MSE": mse,
-            "R2": r2
-        }
-    
-    return resultados
-
-# Guardar el modelo entrenado
-def guardar_modelo(modelo, nombre):
-    ruta_guardado = f"{nombre}_modelo.pkl"
-    joblib.dump(modelo, ruta_guardado)
-    return ruta_guardado
-    
-# Interfaz de Streamlit
-def main():
-    st.title("Predicción de Stock de Verduras")
-    
-    # Botón para cargar y entrenar el modelo
-    if st.button("Entrenar Modelo"):
-        st.write("Cargando datos desde Supabase...")
-        df = cargar_datos()
+    @staticmethod
+    def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+        """Limpia y preprocesa los datos"""
+        df = df.copy()
         
-        if df is None:
-            return
+        # Convertir fechas
+        df['fecha_venta'] = pd.to_datetime(df['fecha_venta'])
         
-        st.write("Datos cargados correctamente.")
+        # Rellenar valores faltantes
+        numeric_columns = ['cantidad_perdida', 'descuento_aplicado', 'temperatura', 'humedad']
+        for col in numeric_columns:
+            df[col] = df[col].fillna(df[col].mean())
         
-        X, y = preparar_datos(df)
+        # Agregar características temporales
+        df['dia_semana'] = df['fecha_venta'].dt.dayofweek
+        df['mes'] = df['fecha_venta'].dt.month
+        df['temporada'] = pd.cut(df['mes'], 
+                               bins=[0, 3, 6, 9, 12], 
+                               labels=['invierno', 'primavera', 'verano', 'otoño'])
         
-        # Dividir los datos en entrenamiento y prueba
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        
-        # Entrenar los modelos
-        resultados = entrenar_modelos(X_train, y_train, X_test, y_test)
-        
-        # Mostrar los resultados
-        st.write("Resultados de los modelos:")
-        resultados_df = pd.DataFrame(resultados).T
-        st.write(resultados_df)
-        
-        # Selección del mejor modelo según R2
-        mejor_modelo_nombre = resultados_df.loc[resultados_df['R2'].idxmax()]["Modelo"]
-        st.write(f"El mejor modelo es: {mejor_modelo_nombre}")
-        
-        # Guardar el mejor modelo
-        modelo_seleccionado = next(modelo for nombre, modelo in {
+        return df
+
+class ModelTrainer:
+    def __init__(self):
+        self.models = {
             "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
             "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
-            "Linear Regression": LinearRegression(),
-        }.items() if nombre == mejor_modelo_nombre)
+            "Linear Regression": LinearRegression()
+        }
+        self.scaler = StandardScaler()
+    
+    def prepare_features(self, df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+        """Prepara las características para el entrenamiento"""
+        features = ['cantidad_vendida', 'descuento_aplicado', 'temperatura', 
+                   'humedad', 'cantidad_perdida', 'dia_semana', 'mes']
         
-        modelo_seleccionado.fit(X_train, y_train)
+        X = df[features]
+        y = df['cantidad_vendida']
         
-        # Botón para descargar el modelo
-        if st.button("Descargar Modelo"):
-            ruta_modelo = guardar_modelo(modelo_seleccionado, mejor_modelo_nombre)
-            st.write(f"Modelo {mejor_modelo_nombre} guardado como '{ruta_modelo}'.")
-            st.download_button("Haz clic para descargar el modelo", ruta_modelo)
+        # Escalar características
+        X_scaled = self.scaler.fit_transform(X)
+        
+        return X_scaled, y
+    
+    def train_and_evaluate(self, X: np.ndarray, y: np.ndarray) -> Dict[str, Dict[str, float]]:
+        """Entrena y evalúa múltiples modelos"""
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        results = {}
+        for name, model in self.models.items():
+            try:
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                
+                results[name] = {
+                    "Modelo": name,
+                    "MSE": mean_squared_error(y_test, y_pred),
+                    "MAE": mean_absolute_error(y_test, y_pred),
+                    "R2": r2_score(y_test, y_pred)
+                }
+            except Exception as e:
+                logger.error(f"Error en el entrenamiento del modelo {name}: {str(e)}")
+                
+        return results
+
+    def save_model(self, model_name: str, model_path: str = "models") -> str:
+        """Guarda el modelo entrenado y el scaler"""
+        os.makedirs(model_path, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        model_file = os.path.join(model_path, f"{model_name}_{timestamp}.pkl")
+        scaler_file = os.path.join(model_path, f"scaler_{timestamp}.pkl")
+        
+        joblib.dump(self.models[model_name], model_file)
+        joblib.dump(self.scaler, scaler_file)
+        
+        return model_file
+
+def main():
+    st.title("Sistema de Predicción de Stock de Verduras")
+    
+    # Configuración de Supabase
+    supabase_conn = SupabaseConnection(
+        url="https://odlosqyzqrggrhvkdovj.supabase.co",
+        key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck"
+    )
+    
+    if st.button("Entrenar Modelo"):
+        try:
+            with st.spinner("Cargando y procesando datos..."):
+                # Cargar y procesar datos
+                df = DataProcessor.load_and_merge_data(supabase_conn)
+                st.success("Datos cargados y procesados correctamente")
+                
+                # Entrenar modelos
+                trainer = ModelTrainer()
+                X, y = trainer.prepare_features(df)
+                results = trainer.train_and_evaluate(X, y)
+                
+                # Mostrar resultados
+                st.subheader("Resultados de la Evaluación")
+                results_df = pd.DataFrame(results).T
+                st.dataframe(results_df)
+                
+                # Identificar mejor modelo
+                best_model = max(results.items(), key=lambda x: x[1]['R2'])[0]
+                st.success(f"Mejor modelo: {best_model} (R² = {results[best_model]['R2']:.4f})")
+                
+                # Opción para guardar el modelo
+                if st.button("Guardar Mejor Modelo"):
+                    model_path = trainer.save_model(best_model)
+                    st.download_button(
+                        label="Descargar Modelo",
+                        data=open(model_path, 'rb'),
+                        file_name=os.path.basename(model_path),
+                        mime="application/octet-stream"
+                    )
+                    
+        except Exception as e:
+            st.error(f"Error durante el proceso: {str(e)}")
+            logger.error(f"Error en la aplicación: {str(e)}")
 
 if __name__ == "__main__":
     main()
