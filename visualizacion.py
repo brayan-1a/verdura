@@ -1,22 +1,24 @@
+import streamlit as st
 import matplotlib.pyplot as plt
 
-# Graficar ventas por fecha
-def graficar_ventas(fechas, ventas):
-    plt.figure(figsize=(10, 6))
-    plt.plot(fechas, ventas, marker='o')
-    plt.title('Ventas a lo largo del tiempo')
-    plt.xlabel('Fecha')
+# Mostrar gráfico de ventas
+def mostrar_grafico_ventas(df):
+    st.subheader("Gráfico de Ventas")
+    ventas_totales = df.groupby('nombre_producto')['cantidad_vendida'].sum()
+    ventas_totales.plot(kind='bar', figsize=(10, 6))
+    plt.title('Ventas Totales por Producto')
     plt.ylabel('Cantidad Vendida')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
+    st.pyplot()
 
-# Graficar predicciones
-def graficar_predicciones(predicciones):
-    plt.figure(figsize=(10, 6))
-    plt.plot(predicciones, marker='x', color='r')
-    plt.title('Predicciones de Stock')
-    plt.xlabel('Producto')
-    plt.ylabel('Cantidad Predicha')
-    plt.tight_layout()
-    plt.show()
+# Mostrar gráfico de predicciones
+def mostrar_grafico_predicciones(df):
+    st.subheader("Gráfico de Predicciones")
+    # Aquí se podría hacer una predicción sobre los productos y mostrar un gráfico similar
+    predicciones = df['cantidad_vendida'] * 0.9  # Ejemplo de predicción arbitraria
+    df['predicciones'] = predicciones
+    df.set_index('nombre_producto', inplace=True)
+    df[['cantidad_vendida', 'predicciones']].plot(kind='bar', figsize=(10, 6))
+    plt.title('Predicción vs Ventas Reales')
+    plt.ylabel('Cantidad')
+    st.pyplot()
+

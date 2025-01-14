@@ -1,45 +1,36 @@
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-import xgboost as xgb
 from sklearn.metrics import mean_squared_error
-import pickle
+import joblib
 
-# Entrenar un modelo de Random Forest
-def entrenar_random_forest(X_train, y_train):
+# Entrenamiento del modelo
+def entrenar_modelo(df):
+    # Preprocesamiento de los datos
+    X = df[['precio_unitario', 'cantidad_promocion', 'temperatura', 'humedad']]  # Características
+    y = df['cantidad_vendida']  # Objetivo
+
     modelo = RandomForestRegressor(n_estimators=100, random_state=42)
-    modelo.fit(X_train, y_train)
-    y_pred = modelo.predict(X_train)
-    mse = mean_squared_error(y_train, y_pred)
-    
-    # Guardar el modelo entrenado temporalmente
-    with open('modelo.pkl', 'wb') as f:
-        pickle.dump(modelo, f)
-    
-    return modelo, mse
+    modelo.fit(X, y)
 
-# Entrenar un modelo XGBoost
-def entrenar_xgboost(X_train, y_train):
-    modelo = xgb.XGBRegressor(n_estimators=100, random_state=42)
-    modelo.fit(X_train, y_train)
-    y_pred = modelo.predict(X_train)
-    mse = mean_squared_error(y_train, y_pred)
-    
-    # Guardar el modelo entrenado temporalmente
-    with open('modelo.pkl', 'wb') as f:
-        pickle.dump(modelo, f)
-    
-    return modelo, mse
+    # Guardar el modelo entrenado
+    joblib.dump(modelo, 'modelo.pkl')
 
-# Cargar el modelo entrenado
-def cargar_modelo():
-    with open('modelo.pkl', 'rb') as f:
-        modelo = pickle.load(f)
+    # Evaluación
+    predicciones = modelo.predict(X)
+    mse = mean_squared_error(y, predicciones)
+    print(f"Error cuadrático medio (MSE): {mse}")
+    
     return modelo
 
-# Realizar una predicción de stock
-def predecir_stock(modelo, precio_unitario, cantidad_promocion, temperatura, humedad):
-    X_input = [[precio_unitario, cantidad_promocion, temperatura, humedad]]
-    cantidad_predicha = modelo.predict(X_input)
-    return cantidad_predicha[0]
+# Predicción del stock
+def predecir_stock(precio_unitario, cantidad_promocion, temperatura, humedad):
+    # Cargar el modelo entrenado
+    modelo = joblib.load('modelo.pkl')
+
+    # Realizar la predicción
+    prediccion = modelo.predict([[precio_unitario, cantidad_promocion, temperatura, humedad]])
+    return prediccion[0]
+
 
 
 

@@ -1,61 +1,43 @@
 import streamlit as st
-from modelo import entrenar_random_forest, predecir_stock, entrenar_xgboost
-from data_processing import limpiar_datos, dividir_datos
-from visualizacion import graficar_ventas, graficar_predicciones
-from recomendaciones import calcular_recomendacion_stock
-import pandas as pd
+from modelo import entrenar_modelo, predecir_stock
+from supabase_connector import cargar_productos
+from visualizacion import mostrar_grafico_ventas, mostrar_grafico_predicciones
+from utils import limpiar_datos, dividir_datos
 
-# Título y descripción de la app
-st.title('Predicción y Recomendación de Stock para Verduras')
-st.write('Este sistema predice el stock necesario para tu negocio de verduras y te recomienda la cantidad de compra.')
+# Título de la aplicación
+st.title("Predicción de Stock para Verduras")
 
-# Datos de entrada para las predicciones
-precio_unitario = st.number_input('Precio Unitario del Producto', min_value=0.0)
-cantidad_promocion = st.number_input('Cantidad en Promoción', min_value=0)
-temperatura = st.number_input('Temperatura (°C)', min_value=-50.0)
-humedad = st.number_input('Humedad (%)', min_value=0.0)
+# Pestañas
+tabs = st.sidebar.radio("Selecciona una opción", ["Entrenamiento de Modelos", "Predicción de Stock", "Visualización"])
 
-# Cargar datos (suponiendo que ya los tienes en un DataFrame)
-# Aquí solo es un ejemplo; normalmente cargarías los datos de tu base de datos o archivo CSV
-datos_crudos = pd.read_csv('ventas.csv')  # Ajusta esto con tus datos reales
+# Cargar datos
+df_productos = cargar_productos()
+df_productos_limpios = limpiar_datos(df_productos)
+df_entrenamiento, df_prueba = dividir_datos(df_productos_limpios)
 
-# Preprocesar los datos
-datos_limpios = limpiar_datos(datos_crudos)
-X = datos_limpios[['precio_unitario', 'cantidad_promocion', 'temperatura', 'humedad']]  # Ajusta las columnas
-y = datos_limpios['stock_necesario']  # Ajusta la columna del stock necesario
+# Entrenamiento de Modelos
+if tabs == "Entrenamiento de Modelos":
+    st.subheader("Entrenamiento de Modelos")
+    modelo = entrenar_modelo(df_entrenamiento)
+    st.write("Modelo entrenado exitosamente")
 
-# Dividir los datos para entrenamiento y prueba
-X_train, X_test, y_train, y_test = dividir_datos(X, y)
+# Predicción de Stock
+if tabs == "Predicción de Stock":
+    st.subheader("Predicción de Stock")
+    precio_unitario = st.number_input("Precio Unitario", min_value=0.0, value=10.0)
+    cantidad_promocion = st.number_input("Cantidad en Promoción", min_value=0, value=0)
+    temperatura = st.number_input("Temperatura (°C)", value=25.0)
+    humedad = st.number_input("Humedad (%)", min_value=0.0, max_value=100.0, value=60.0)
 
-# Pestañas para navegar entre las secciones
-seccion = st.selectbox('Selecciona una acción:', ['Entrenar Modelo', 'Realizar Predicción', 'Ver Gráficos'])
+    if st.button("Predecir Stock"):
+        cantidad_predicha = predecir_stock(precio_unitario, cantidad_promocion, temperatura, humedad)
+        st.write(f"La cantidad recomendada de stock es: {cantidad_predicha}")
 
-if seccion == 'Entrenar Modelo':
-    modelo_opcion = st.selectbox('Selecciona el modelo:', ['Random Forest', 'XGBoost'])
-    
-    if st.button('Entrenar'):
-        if modelo_opcion == 'Random Forest':
-            modelo, mse = entrenar_random_forest(X_train, y_train)
-        elif modelo_opcion == 'XGBoost':
-            modelo, mse = entrenar_xgboost(X_train, y_train)
-        
-        st.success(f'Modelo entrenado exitosamente. Error cuadrático medio (MSE): {mse}')
-
-elif seccion == 'Realizar Predicción':
-    if 'modelo' in locals():  # Asegurarnos de que el modelo ha sido entrenado
-        cantidad_predicha = predecir_stock(modelo, precio_unitario, cantidad_promocion, temperatura, humedad)
-        st.write(f'La cantidad recomendada de stock es: {cantidad_predicha}')
-    else:
-        st.warning("Primero, entrena el modelo antes de realizar la predicción.")
-
-elif seccion == 'Ver Gráficos':
-    st.subheader("Gráficos de Ventas y Predicciones")
-    
-    # Gráfico de ventas
-    graficar_ventas(datos_limpios['fecha'], datos_limpios['cantidad_vendida'])
-    
-    # Gráfico de predicciones
-    graficar_predicciones([cantidad_predicha])  # Solo un ejemplo de visualización
+# Visualización de Datos
+if tabs == "Visualización":
+    st.subheader("Visualización de Datos")
+    mostrar_grafico_ventas(df_productos)
+    mostrar_grafico_predicciones(df_productos)
 
 
 
