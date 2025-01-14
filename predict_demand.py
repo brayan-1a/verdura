@@ -3,8 +3,8 @@ from supabase import create_client
 import pandas as pd
 
 # Conexión a Supabase
-url = "https://odlosqyzqrggrhvkdovj.supabase.co"  # URL de Supabase
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck"  # Tu clave de Supabase
+url = 'https://odlosqyzqrggrhvkdovj.supabase.co'  # URL de Supabase
+key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck'  # Tu clave de Supabase
 
 # Crear cliente Supabase
 supabase = create_client(url, key)
