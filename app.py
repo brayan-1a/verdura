@@ -6,7 +6,7 @@ from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
 
 def main():
-    st.title('Evaluación del Modelo Mejorado - Tienda de Verduras')
+    st.title('Evaluación del Modelo Optimizado - Tienda de Verduras')
 
     # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
@@ -23,7 +23,7 @@ def main():
     st.dataframe(st.session_state.df_ventas.head())
     
     # Botón para entrenar el modelo
-    if st.button('Entrenar Modelo Mejorado', type='primary'):
+    if st.button('Entrenar Modelo Optimizado', type='primary'):
         st.session_state.modelo_entrenado = True
         
         with st.spinner('Preparando datos...'):
@@ -41,7 +41,7 @@ def main():
             st.session_state.error_analysis = error_analysis
             
             st.success('¡Modelo entrenado exitosamente!')
-    
+
     # Mostrar resultados si el modelo ha sido entrenado
     if st.session_state.modelo_entrenado:
         # Métricas principales
@@ -86,6 +86,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 

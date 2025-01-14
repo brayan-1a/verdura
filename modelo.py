@@ -38,12 +38,12 @@ def entrenar_y_evaluar(df):
     
     # Crear modelo con parámetros optimizados
     modelo = RandomForestRegressor(
-        n_estimators=200,          # Más árboles
-        max_depth=10,              # Limitar profundidad para evitar overfitting
-        min_samples_split=5,       # Mínimo de muestras para dividir un nodo
-        min_samples_leaf=2,        # Mínimo de muestras en hojas
+        n_estimators=300,          
+        max_depth=15,              
+        min_samples_split=4,       
+        min_samples_leaf=2,        
         random_state=42,
-        n_jobs=-1                  # Usar todos los núcleos disponibles
+        n_jobs=-1                 
     )
     
     # Validación cruzada
@@ -97,6 +97,7 @@ def analizar_errores(resultados):
         'error_min': resultados['Diferencia'].min()
     }
     return error_analysis
+
 
 
 
