@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from conexion import obtener_datos
 from preparar_datos import preparar_datos_modelo
-from modelo import entrenar_y_evaluar
+from modelo import entrenar_y_evaluar, analizar_errores
 
 def main():
-    st.title('Evaluación del Modelo - Tienda de Verduras')
+    st.title('Evaluación del Modelo Mejorado - Tienda de Verduras')
     
-    # Inicializar variables de estado en session_state
+    # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
         st.session_state.modelo_entrenado = False
     
@@ -21,18 +22,8 @@ def main():
     st.subheader('Muestra de Datos')
     st.dataframe(st.session_state.df_ventas.head())
     
-    # Información sobre los datos
-    st.subheader('Información del Dataset')
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric('Total Registros', len(st.session_state.df_ventas))
-    with col2:
-        st.metric('Productos Únicos', st.session_state.df_ventas['producto_id'].nunique())
-    with col3:
-        st.metric('Rango de Fechas', f"{st.session_state.df_ventas['fecha_venta'].min()} a {st.session_state.df_ventas['fecha_venta'].max()}")
-    
     # Botón para entrenar el modelo
-    if st.button('Entrenar Modelo', type='primary'):
+    if st.button('Entrenar Modelo Mejorado', type='primary'):
         st.session_state.modelo_entrenado = True
         
         with st.spinner('Preparando datos...'):
@@ -41,49 +32,57 @@ def main():
         
         # Entrenar modelo y obtener resultados
         with st.spinner('Entrenando modelo...'):
-            modelo, resultados = entrenar_y_evaluar(df_preparado)
+            modelo, resultados, metricas, importancia = entrenar_y_evaluar(df_preparado)
+            error_analysis = analizar_errores(resultados)
+            
             st.session_state.resultados = resultados
-            
-            # Calcular métricas
-            rmse = resultados['Diferencia'].mean()
-            r2 = 1 - (resultados['Diferencia'].sum() ** 2) / ((resultados['Valor Real'] - resultados['Valor Real'].mean()) ** 2).sum()
-            
-            st.session_state.rmse = rmse
-            st.session_state.r2 = r2
+            st.session_state.metricas = metricas
+            st.session_state.importancia = importancia
+            st.session_state.error_analysis = error_analysis
             
             st.success('¡Modelo entrenado exitosamente!')
     
-    # Mostrar resultados solo si el modelo ha sido entrenado
+    # Mostrar resultados si el modelo ha sido entrenado
     if st.session_state.modelo_entrenado:
+        # Métricas principales
         st.subheader('Métricas del Modelo')
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric('R² (Test)', f"{st.session_state.metricas['r2_test']:.3f}")
+        with col2:
+            st.metric('RMSE (Test)', f"{st.session_state.metricas['rmse_test']:.2f}")
+        with col3:
+            st.metric('R² CV Promedio', f"{st.session_state.metricas['cv_scores_mean']:.3f}")
+        
+        # Importancia de características
+        st.subheader('Importancia de Características')
+        fig_importance = px.bar(
+            st.session_state.importancia,
+            x='caracteristica',
+            y='importancia',
+            title='Importancia de cada característica en el modelo'
+        )
+        st.plotly_chart(fig_importance)
+        
+        # Análisis de errores
+        st.subheader('Análisis de Errores')
         col1, col2 = st.columns(2)
         with col1:
-            st.metric('RMSE (Error Medio)', round(st.session_state.rmse, 2))
-            st.caption('Menor RMSE indica mejor precisión')
+            st.metric('Error Medio', f"{st.session_state.error_analysis['error_medio']:.2f}")
+            st.metric('Error Máximo', f"{st.session_state.error_analysis['error_max']:.2f}")
         with col2:
-            st.metric('R² (Coeficiente de Determinación)', round(st.session_state.r2, 2))
-            st.caption('R² más cercano a 1 indica mejor ajuste')
+            st.metric('Error Mediano', f"{st.session_state.error_analysis['error_mediano']:.2f}")
+            st.metric('Desviación Estándar', f"{st.session_state.error_analysis['error_std']:.2f}")
         
-        # Explicación de las métricas
-        with st.expander("📊 Interpretación de las Métricas"):
-            st.write("""
-            - **RMSE (Root Mean Square Error)**: Mide el error promedio de las predicciones. 
-              Un valor más bajo indica predicciones más precisas.
-            
-            - **R² (R-cuadrado)**: Indica qué tan bien el modelo explica la variabilidad de los datos.
-              - R² = 1: ajuste perfecto
-              - R² = 0: el modelo no explica la variabilidad
-              - R² negativo: el modelo necesita mejoras
-            """)
-        
-        # Mostrar resultados detallados
-        st.subheader('Comparación de Resultados')
-        st.dataframe(st.session_state.resultados.head(10))
-        
-        # Visualización
-        st.subheader('Visualización de Predicciones vs Valores Reales')
-        chart_data = st.session_state.resultados[['Valor Real', 'Predicción']].head(20)
-        st.line_chart(chart_data)
+        # Visualización de predicciones
+        st.subheader('Predicciones vs Valores Reales')
+        fig_predictions = px.scatter(
+            st.session_state.resultados,
+            x='Valor Real',
+            y='Predicción',
+            title='Comparación de Predicciones vs Valores Reales'
+        )
+        st.plotly_chart(fig_predictions)
 
 if __name__ == '__main__':
     main()
