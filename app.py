@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import joblib
+import os
 
 # Conexión a Supabase
 url = "https://odlosqyzqrggrhvkdovj.supabase.co"  # URL de Supabase
@@ -17,6 +18,9 @@ supabase: Client = create_client(url, key)
 def cargar_datos():
     # Obtener ventas
     ventas_query = supabase.table("ventas").select("*").execute()
+    if 'data' not in ventas_query:
+        st.error("No se encontraron datos en la tabla de ventas.")
+        return None
     ventas_df = pd.DataFrame(ventas_query['data'])
 
     # Obtener productos
@@ -87,7 +91,9 @@ def entrenar_modelos(X_train, y_train, X_test, y_test):
 
 # Guardar el modelo entrenado
 def guardar_modelo(modelo, nombre):
-    joblib.dump(modelo, f'{nombre}_modelo.pkl')
+    ruta_guardado = f"{nombre}_modelo.pkl"
+    joblib.dump(modelo, ruta_guardado)
+    return ruta_guardado
     
 # Interfaz de Streamlit
 def main():
@@ -97,6 +103,10 @@ def main():
     if st.button("Entrenar Modelo"):
         st.write("Cargando datos desde Supabase...")
         df = cargar_datos()
+        
+        if df is None:
+            return
+        
         st.write("Datos cargados correctamente.")
         
         X, y = preparar_datos(df)
@@ -127,12 +137,13 @@ def main():
         
         # Botón para descargar el modelo
         if st.button("Descargar Modelo"):
-            guardar_modelo(modelo_seleccionado, mejor_modelo_nombre)
-            st.write(f"Modelo {mejor_modelo_nombre} guardado como '{mejor_modelo_nombre}_modelo.pkl'.")
-            st.download_button("Haz clic para descargar el modelo", f'{mejor_modelo_nombre}_modelo.pkl')
+            ruta_modelo = guardar_modelo(modelo_seleccionado, mejor_modelo_nombre)
+            st.write(f"Modelo {mejor_modelo_nombre} guardado como '{ruta_modelo}'.")
+            st.download_button("Haz clic para descargar el modelo", ruta_modelo)
 
 if __name__ == "__main__":
     main()
+
 
 
 
