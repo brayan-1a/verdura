@@ -9,17 +9,13 @@ def entrenar_y_evaluar(df):
     """Entrena el modelo con características mejoradas y validación cruzada"""
     
     # Preparar features adicionales
-    X = df[['dia_semana', 'mes']].copy()
+    X = df[['dia_semana', 'mes', 'es_festivo', 'tipo_dia', 'promocion']].copy()
     
     # Agregar características de tendencia temporal
     X['tendencia'] = np.arange(len(X))
     
     # Agregar características estacionales
-    X['es_fin_semana'] = X['dia_semana'].isin([5, 6]).astype(int)
     X['temporada'] = pd.cut(X['mes'], bins=[0,3,6,9,12], labels=[0,1,2,3])
-    
-    # Agregar interacciones
-    X['mes_dia'] = X['mes'] * X['dia_semana']
     
     # Variable objetivo
     y = df['cantidad_vendida']
@@ -38,10 +34,10 @@ def entrenar_y_evaluar(df):
     
     # Crear modelo con parámetros optimizados
     modelo = RandomForestRegressor(
-        n_estimators=200,          # Más árboles
-        max_depth=10,              # Limitar profundidad para evitar overfitting
-        min_samples_split=5,       # Mínimo de muestras para dividir un nodo
-        min_samples_leaf=2,        # Mínimo de muestras en hojas
+        n_estimators=500,          # Aumentamos el número de árboles
+        max_depth=15,              # Aumentamos la profundidad
+        min_samples_split=10,      # Más muestras para dividir
+        min_samples_leaf=5,        # Más muestras en hojas
         random_state=42,
         n_jobs=-1                  # Usar todos los núcleos disponibles
     )
@@ -87,16 +83,6 @@ def entrenar_y_evaluar(df):
     
     return modelo, resultados, metricas, importancia
 
-def analizar_errores(resultados):
-    """Analiza los errores del modelo en detalle"""
-    error_analysis = {
-        'error_medio': resultados['Diferencia'].mean(),
-        'error_mediano': resultados['Diferencia'].median(),
-        'error_std': resultados['Diferencia'].std(),
-        'error_max': resultados['Diferencia'].max(),
-        'error_min': resultados['Diferencia'].min()
-    }
-    return error_analysis
 
 
 

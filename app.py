@@ -7,7 +7,7 @@ from modelo import entrenar_y_evaluar, analizar_errores
 
 def main():
     st.title('Evaluación del Modelo Mejorado - Tienda de Verduras')
-
+    
     # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
         st.session_state.modelo_entrenado = False
@@ -41,7 +41,7 @@ def main():
             st.session_state.error_analysis = error_analysis
             
             st.success('¡Modelo entrenado exitosamente!')
-    
+
     # Mostrar resultados si el modelo ha sido entrenado
     if st.session_state.modelo_entrenado:
         # Métricas principales
@@ -86,6 +86,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
