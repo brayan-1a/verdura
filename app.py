@@ -5,6 +5,7 @@ import pickle
 from conexion import obtener_datos
 from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
+from sklearn.metrics import mean_squared_error, r2_score
 
 def cargar_modelo(file):
     """Carga un modelo desde un archivo .pkl."""
@@ -107,9 +108,9 @@ def main():
         if archivo is not None:
             modelo = cargar_modelo(archivo)
             
-            if modelo:
+            if modelo is not None:
                 st.write("### Modelo Cargado Exitosamente")
-                st.write(modelo)  # Información básica del modelo
+                st.write(f"Modelo: {modelo}")  # Información básica del modelo
                 
                 # Subir datos de prueba
                 archivo_datos = st.file_uploader("Sube datos de prueba (CSV)", type=["csv"])
@@ -138,9 +139,12 @@ def main():
                         st.dataframe(datos[['target', 'Predicciones']])
                     else:
                         st.error("El archivo de datos debe contener una columna llamada 'target'.")
+            else:
+                st.error("Hubo un error al cargar el modelo. Intenta nuevamente.")
 
 if __name__ == '__main__':
     main()
+
 
 
 
