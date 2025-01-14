@@ -1,3 +1,4 @@
+# preparar_datos.py
 import pandas as pd
 from conexion import conectar_supabase
 
@@ -11,9 +12,11 @@ def obtener_datos():
     df_ventas['fecha_venta'] = pd.to_datetime(df_ventas['fecha_venta'])
     return df_ventas
 
-def preparar_datos(df_ventas, periodo='D'):
-    # Agrupar ventas por período seleccionado (Día, Semana, Mes)
-    df_preparado = df_ventas.groupby(pd.Grouper(key='fecha_venta', freq=periodo))['cantidad_vendida'].sum().reset_index()
-    df_preparado = df_preparado.rename(columns={'fecha_venta': 'periodo', 'cantidad_vendida': 'demanda'})
+def preparar_datos(df_ventas):
+    # Aquí no agrupamos los datos por período, solo seleccionamos las columnas relevantes
+    df_preparado = df_ventas[['precio_unitario', 'cantidad_promocion', 'temperatura', 'humedad', 'cantidad_vendida']]
+    
+    # Puedes agregar más pasos de preparación de datos si es necesario (como tratar valores nulos)
     return df_preparado
+
 

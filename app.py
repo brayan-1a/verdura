@@ -10,12 +10,7 @@ st.title("Entrenamiento del Modelo")
 if 'modelo_entrenado' not in st.session_state:
     st.session_state.modelo_entrenado = None
 
-# Selección de período para entrenar el modelo
-periodo = st.selectbox("Seleccione el período para el entrenamiento", ["Día", "Semana", "Mes"])
-
-# Mapeo para la frecuencia
-frecuencia = {'Día': 'D', 'Semana': 'W', 'Mes': 'M'}[periodo]
-
+# Botón para entrenar el modelo
 if st.button("Entrenar Modelo"):
     # Obtener y preparar datos
     df_ventas = obtener_datos()
@@ -23,7 +18,8 @@ if st.button("Entrenar Modelo"):
     if df_ventas is None or df_ventas.empty:
         st.error("No se pudieron obtener datos de ventas de Supabase.")
     else:
-        df_preparado = preparar_datos(df_ventas, frecuencia)
+        # Preparar los datos sin necesidad de seleccionar un período
+        df_preparado = preparar_datos(df_ventas)
 
         if df_preparado.empty:
             st.error("No se encontraron datos suficientes para entrenar el modelo.")
@@ -34,8 +30,8 @@ if st.button("Entrenar Modelo"):
 
             # Entrenar el modelo
             try:
-                # Asegurarse de pasar tanto los datos como la frecuencia
-                modelo, mae, mse = entrenar_modelo(df_preparado, frecuencia)  
+                # Solo pasamos los datos, no es necesario el parámetro de frecuencia
+                modelo, mae, mse = entrenar_modelo(df_preparado)  
                 st.session_state.modelo_entrenado = modelo  # Guardar el modelo entrenado en la sesión
 
                 # Mostrar métricas
@@ -44,6 +40,7 @@ if st.button("Entrenar Modelo"):
                 st.success("Modelo entrenado exitosamente.")
             except Exception as e:
                 st.error(f"Hubo un error al entrenar el modelo: {e}")
+
 
 
 
