@@ -9,8 +9,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 import joblib
 
 # Conexión a Supabase
-url = st.secrets["supabase_url"]  # URL de Supabase
-key = st.secrets["supabase_key"]  # Key de Supabase
+url = "https://odlosqyzqrggrhvkdovj.supabase.co"  # URL de Supabase
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck"  # Key de Supabase
 supabase: Client = create_client(url, key)
 
 # Cargar datos de Supabase
