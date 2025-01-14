@@ -1,37 +1,46 @@
-import pickle
-import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
+import xgboost as xgb
 from sklearn.metrics import mean_squared_error
+import pickle
 
-# Entrenar el modelo y devolver el modelo entrenado
-def entrenar_modelo():
-    # Datos de ejemplo (debes usar tus propios datos en la vida real)
-    X = np.array([[2.5, 5, 25, 60], [3.0, 10, 28, 65], [1.5, 3, 22, 55], [4.0, 7, 30, 80], [2.2, 0, 26, 70]])
-    y = np.array([100, 150, 80, 200, 50])  # La cantidad de stock que necesitas
-
-    # Dividir los datos en entrenamiento y prueba
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Crear y entrenar el modelo
-    modelo_rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    modelo_rf.fit(X_train, y_train)
-
-    # Evaluación del modelo
-    y_pred = modelo_rf.predict(X_test)
-    mse = mean_squared_error(y_test, y_pred)
+# Entrenar un modelo de Random Forest
+def entrenar_random_forest(X_train, y_train):
+    modelo = RandomForestRegressor(n_estimators=100, random_state=42)
+    modelo.fit(X_train, y_train)
+    y_pred = modelo.predict(X_train)
+    mse = mean_squared_error(y_train, y_pred)
     
-    return modelo_rf, mse
+    # Guardar el modelo entrenado temporalmente
+    with open('modelo.pkl', 'wb') as f:
+        pickle.dump(modelo, f)
+    
+    return modelo, mse
 
-# Función para hacer la predicción del stock (usando el modelo en memoria)
+# Entrenar un modelo XGBoost
+def entrenar_xgboost(X_train, y_train):
+    modelo = xgb.XGBRegressor(n_estimators=100, random_state=42)
+    modelo.fit(X_train, y_train)
+    y_pred = modelo.predict(X_train)
+    mse = mean_squared_error(y_train, y_pred)
+    
+    # Guardar el modelo entrenado temporalmente
+    with open('modelo.pkl', 'wb') as f:
+        pickle.dump(modelo, f)
+    
+    return modelo, mse
+
+# Cargar el modelo entrenado
+def cargar_modelo():
+    with open('modelo.pkl', 'rb') as f:
+        modelo = pickle.load(f)
+    return modelo
+
+# Realizar una predicción de stock
 def predecir_stock(modelo, precio_unitario, cantidad_promocion, temperatura, humedad):
-    # Preparar los datos de entrada
-    datos_entrada = np.array([[precio_unitario, cantidad_promocion, temperatura, humedad]])
+    X_input = [[precio_unitario, cantidad_promocion, temperatura, humedad]]
+    cantidad_predicha = modelo.predict(X_input)
+    return cantidad_predicha[0]
 
-    # Realizar la predicción
-    prediccion = modelo.predict(datos_entrada)
-
-    return prediccion[0]
 
 
 
