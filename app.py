@@ -1,45 +1,48 @@
-# app.py
 import streamlit as st
-from preparar_datos import obtener_datos, preparar_datos
-from entrenar_modelo import entrenar_modelo
 import pandas as pd
+from conexion import obtener_datos
+from preparar_datos import preparar_datos_modelo
+from modelo import entrenar_modelo, predecir_stock
 
-st.title("Entrenamiento del Modelo")
-
-# Pestaña para entrenar el modelo
-if 'modelo_entrenado' not in st.session_state:
-    st.session_state.modelo_entrenado = None
-
-# Botón para entrenar el modelo
-if st.button("Entrenar Modelo"):
-    # Obtener y preparar datos
-    df_ventas = obtener_datos()
+def main():
+    st.title('Predicción de Stock - Tienda de Verduras')
     
-    if df_ventas is None or df_ventas.empty:
-        st.error("No se pudieron obtener datos de ventas de Supabase.")
-    else:
-        # Preparar los datos sin necesidad de seleccionar un período
-        df_preparado = preparar_datos(df_ventas)
+    # Cargar datos
+    with st.spinner('Cargando datos...'):
+        df_ventas, df_inventarios, df_desperdicios = obtener_datos()
+        
+    # Preparar datos
+    df_final = preparar_datos_modelo(df_ventas, df_inventarios, df_desperdicios)
+    
+    # Entrenar modelo
+    with st.spinner('Entrenando modelo...'):
+        modelo, rmse, r2 = entrenar_modelo(df_final)
+        
+    # Mostrar métricas
+    st.subheader('Métricas del Modelo')
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric('RMSE', round(rmse, 2))
+    with col2:
+        st.metric('R²', round(r2, 2))
+    
+    # Sección de predicción
+    st.subheader('Realizar Predicción')
+    producto_id = st.selectbox('Seleccionar Producto', df_ventas['producto_id'].unique())
+    dia_semana = st.selectbox('Día de la Semana', range(7))
+    mes = st.selectbox('Mes', range(1, 13))
+    
+    if st.button('Predecir'):
+        datos_nuevos = pd.DataFrame({
+            'dia_semana': [dia_semana],
+            'mes': [mes],
+            'cantidad_perdida': [df_final['cantidad_perdida'].mean()]  # Usamos el promedio histórico
+        })
+        prediccion = predecir_stock(modelo, datos_nuevos)
+        st.success(f'Stock recomendado: {round(prediccion[0])} unidades')
 
-        if df_preparado.empty:
-            st.error("No se encontraron datos suficientes para entrenar el modelo.")
-        else:
-            # Verificar si los datos están en el formato correcto
-            st.write("Datos preparados para entrenamiento:")
-            st.dataframe(df_preparado.head())
-
-            # Entrenar el modelo
-            try:
-                # Solo pasamos los datos, no es necesario el parámetro de frecuencia
-                modelo, mae, mse = entrenar_modelo(df_preparado)  
-                st.session_state.modelo_entrenado = modelo  # Guardar el modelo entrenado en la sesión
-
-                # Mostrar métricas
-                st.write(f"MAE: {mae}")
-                st.write(f"MSE: {mse}")
-                st.success("Modelo entrenado exitosamente.")
-            except Exception as e:
-                st.error(f"Hubo un error al entrenar el modelo: {e}")
+if __name__ == '__main__':
+    main()
 
 
 
