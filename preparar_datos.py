@@ -10,13 +10,21 @@ def obtener_datos():
     df_ventas = pd.DataFrame(ventas)
     # Asegúrate de que la columna 'fecha_venta' sea del tipo datetime
     df_ventas['fecha_venta'] = pd.to_datetime(df_ventas['fecha_venta'])
+    
+    # Verifica las columnas de df_ventas
+    print("Columnas disponibles en df_ventas:", df_ventas.columns)
+    
     return df_ventas
 
 def preparar_datos(df_ventas):
-    # Aquí no agrupamos los datos por período, solo seleccionamos las columnas relevantes
+    # Verificar las columnas
+    print("Columnas disponibles en df_ventas:", df_ventas.columns)
+    
+    # Intentar seleccionar las columnas relevantes
     df_preparado = df_ventas[['precio_unitario', 'cantidad_promocion', 'temperatura', 'humedad', 'cantidad_vendida']]
     
     # Puedes agregar más pasos de preparación de datos si es necesario (como tratar valores nulos)
     return df_preparado
+
 
 
