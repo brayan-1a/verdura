@@ -1,45 +1,41 @@
-import streamlit as st
-from preparar_datos import obtener_datos, preparar_datos
-from entrenar_modelo import entrenar_modelo
 import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+import joblib
 
-st.title("Entrenamiento del Modelo")
+# Entrenamiento del modelo
+def entrenar_modelo(df, frecuencia='D'):  # Recibe 'frecuencia' como parámetro
+    # Preprocesamiento de los datos
+    X = df[['precio_unitario', 'cantidad_promocion', 'temperatura', 'humedad']]  # Características
+    y = df['cantidad_vendida']  # Objetivo
 
-# Pestaña para entrenar el modelo
-if 'modelo_entrenado' not in st.session_state:
-    st.session_state.modelo_entrenado = None
+    modelo = RandomForestRegressor(n_estimators=100, random_state=42)
+    modelo.fit(X, y)
 
-# Selección de período para entrenar el modelo
-periodo = st.selectbox("Seleccione el período para el entrenamiento", ["Día", "Semana", "Mes"])
-frecuencia = {'Día': 'D', 'Semana': 'W', 'Mes': 'M'}[periodo]
+    # Guardar el modelo entrenado
+    joblib.dump(modelo, 'modelo.pkl')
 
-if st.button("Entrenar Modelo"):
-    # Obtener y preparar datos
-    df_ventas = obtener_datos()
+    # Evaluación
+    predicciones = modelo.predict(X)
     
-    if df_ventas is None or df_ventas.empty:
-        st.error("No se pudieron obtener datos de ventas de Supabase.")
-    else:
-        df_preparado = preparar_datos(df_ventas, frecuencia)
+    # Calcular métricas de error
+    mae = mean_absolute_error(y, predicciones)
+    mse = mean_squared_error(y, predicciones)
+    
+    print(f"MAE: {mae}")
+    print(f"MSE: {mse}")
+    
+    return modelo, mae, mse  # Devuelve el modelo, MAE y MSE
 
-        if df_preparado.empty:
-            st.error("No se encontraron datos suficientes para entrenar el modelo.")
-        else:
-            # Verificar si los datos están en el formato correcto
-            st.write("Datos preparados para entrenamiento:")
-            st.dataframe(df_preparado.head())
+# Predicción del stock
+def predecir_stock(precio_unitario, cantidad_promocion, temperatura, humedad):
+    # Cargar el modelo entrenado
+    modelo = joblib.load('modelo.pkl')
 
-            # Entrenar el modelo
-            try:
-                modelo, mae, mse = entrenar_modelo(df_preparado, frecuencia)
-                st.session_state.modelo_entrenado = modelo  # Guardar el modelo entrenado en la sesión
+    # Realizar la predicción
+    prediccion = modelo.predict([[precio_unitario, cantidad_promocion, temperatura, humedad]])
+    return prediccion[0]
 
-                # Mostrar métricas
-                st.write(f"MAE: {mae}")
-                st.write(f"MSE: {mse}")
-                st.success("Modelo entrenado exitosamente.")
-            except Exception as e:
-                st.error(f"Hubo un error al entrenar el modelo: {e}")
 
 
 
