@@ -6,7 +6,7 @@ from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
 
 def main():
-    st.title('Evaluación del Modelo Mejorado - Tienda de Verduras')
+    st.title('Evaluación del Modelo - Predicción de Stock Necesario')
     
     # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
@@ -23,7 +23,7 @@ def main():
     st.dataframe(st.session_state.df_ventas.head())
     
     # Botón para entrenar el modelo
-    if st.button('Entrenar Modelo Mejorado', type='primary'):
+    if st.button('Entrenar Modelo para Predicción de Stock', type='primary'):
         st.session_state.modelo_entrenado = True
         
         with st.spinner('Preparando datos...'):
@@ -74,13 +74,13 @@ def main():
             st.metric('Error Mediano', f"{st.session_state.error_analysis['error_mediano']:.2f}")
             st.metric('Desviación Estándar', f"{st.session_state.error_analysis['error_std']:.2f}")
         
-        # Visualización de predicciones
-        st.subheader('Predicciones vs Valores Reales')
+        # Visualización de predicciones de stock necesario
+        st.subheader('Predicción de Stock Necesario')
         fig_predictions = px.scatter(
             st.session_state.resultados,
-            x='Valor Real',
-            y='Predicción',
-            title='Comparación de Predicciones vs Valores Reales'
+            x='Fecha',
+            y='Predicción de Stock Necesario',
+            title='Predicción de Stock Necesario vs. Fecha'
         )
         st.plotly_chart(fig_predictions)
 
