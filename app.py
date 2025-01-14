@@ -4,66 +4,66 @@ from entrenar_modelo import entrenar_modelo
 from evaluar_modelo import predecir_demanda
 import pandas as pd
 
-# Título de la aplicación
 st.title("Predicción de Demanda de Productos")
 
-# **Parte 1: Entrenamiento del modelo**
-st.header("Entrenar el modelo")
+# Variable de sesión para guardar el modelo entrenado
+if 'modelo_entrenado' not in st.session_state:
+    st.session_state.modelo_entrenado = None
 
-# Selección de período
-periodo = st.selectbox("Seleccione el período para el entrenamiento", ["Día", "Semana", "Mes"])
-frecuencia = {'Día': 'D', 'Semana': 'W', 'Mes': 'M'}[periodo]
+# Pestañas para navegar entre "Entrenamiento" y "Predicción"
+opcion = st.radio("Selecciona una opción", ("Entrenar Modelo", "Realizar Predicciones"))
 
-if st.button("Cargar datos y entrenar modelo"):
-    # Obtener y preparar los datos
-    df_ventas = obtener_datos()
-    df_preparado = preparar_datos(df_ventas, frecuencia)
+if opcion == "Entrenar Modelo":
+    # Sección de entrenamiento del modelo
+    st.subheader("Entrenamiento del Modelo")
     
-    # Entrenar el modelo
-    modelo, mae, mse = entrenar_modelo(df_preparado, frecuencia)
-    
-    # Mostrar las métricas
-    st.write(f"**MAE**: {mae}")
-    st.write(f"**MSE**: {mse}")
-    
-    # Almacenar el modelo entrenado para usarlo más tarde
-    st.session_state.modelo = modelo
-    st.session_state.df_preparado = df_preparado
-    st.session_state.frecuencia = frecuencia
-
-# **Parte 2: Hacer predicciones**
-if 'modelo' in st.session_state:
-    st.header("Hacer predicción de demanda")
-
-    # Selección del producto
-    productos = st.session_state.df_preparado['producto_id'].unique()
-    producto_seleccionado = st.selectbox("Seleccione el producto", productos)
-    
-    # Selección de la fecha de predicción
-    fechas_futuras = pd.date_range(st.session_state.df_preparado['periodo'].max(), periods=10, freq=st.session_state.frecuencia)
-    
-    # Selección del período para la predicción
-    periodo_prediccion = st.selectbox("Seleccione el período para la predicción", ["Día", "Semana", "Mes"])
-    frecuencia_prediccion = {'Día': 'D', 'Semana': 'W', 'Mes': 'M'}[periodo_prediccion]
-    
-    # Botón de predicción
-    if st.button("Predecir demanda"):
-        # Filtrar los datos para el producto seleccionado
-        df_producto = st.session_state.df_preparado[st.session_state.df_preparado['producto_id'] == producto_seleccionado]
+    if st.button("Cargar datos y entrenar modelo"):
+        # Obtener y preparar datos
+        df_ventas = obtener_datos()
+        periodo = st.selectbox("Seleccione el período para la predicción", ["Día", "Semana", "Mes"])
+        frecuencia = {'Día': 'D', 'Semana': 'W', 'Mes': 'M'}[periodo]
         
-        # Predecir la demanda usando el modelo entrenado
-        predicciones = predecir_demanda(st.session_state.modelo, fechas_futuras)
+        df_preparado = preparar_datos(df_ventas, frecuencia)
         
-        # Mostrar los resultados
-        resultados = pd.DataFrame({
-            "Fecha": fechas_futuras,
-            "Demanda Predicha": predicciones
-        })
+        # Entrenar modelo
+        modelo, mae, mse = entrenar_modelo(df_preparado, frecuencia)
+        st.session_state.modelo_entrenado = modelo  # Guardar el modelo entrenado en la sesión
         
-        st.write(f"Predicciones para el producto {producto_seleccionado}:")
-        st.dataframe(resultados)
-else:
-    st.warning("Primero entrena el modelo para poder hacer predicciones.")
+        # Mostrar métricas
+        st.write(f"MAE: {mae}")
+        st.write(f"MSE: {mse}")
+        st.success("Modelo entrenado exitosamente. Ahora puedes hacer predicciones.")
+    
+elif opcion == "Realizar Predicciones":
+    # Sección de predicción
+    if st.session_state.modelo_entrenado:
+        st.subheader("Realizar Predicciones")
+
+        # Selección de producto para predecir
+        productos = ['Tomate', 'Lechuga', 'Pepino']  # Ejemplo de productos
+        producto_seleccionado = st.selectbox("Seleccione el producto", productos)
+        
+        # Selección de periodo para predicción
+        periodo_prediccion = st.selectbox("Seleccione el período de predicción", ["Día", "Semana", "Mes"])
+        frecuencia_prediccion = {'Día': 'D', 'Semana': 'W', 'Mes': 'M'}[periodo_prediccion]
+        
+        if st.button("Predecir demanda"):
+            # Obtener la fecha de la última venta
+            df_ventas = obtener_datos()
+            df_preparado = preparar_datos(df_ventas, frecuencia_prediccion)
+            
+            # Predecir para los próximos períodos
+            ultimo_periodo = df_preparado['periodo'].max()
+            fechas_futuras = pd.date_range(ultimo_periodo, periods=10, freq=frecuencia_prediccion)
+            predicciones = predecir_demanda(st.session_state.modelo_entrenado, fechas_futuras)
+            
+            # Mostrar resultados
+            resultados = pd.DataFrame({"Fecha": fechas_futuras, "Demanda Predicha": predicciones})
+            st.write(f"Predicción de demanda para {producto_seleccionado}:")
+            st.dataframe(resultados)
+    else:
+        st.info("Primero entrena el modelo para poder hacer predicciones.")
+
 
 
 
