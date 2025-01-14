@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 
 def entrenar_y_evaluar(df):
-    """Entrena el modelo para predecir el stock necesario"""
+    """Entrena el modelo con características mejoradas y validación cruzada"""
     
-    # Preparar características para predicción de stock
+    # Preparar features adicionales
     X = df[['dia_semana', 'mes']].copy()
     
     # Agregar características de tendencia temporal
@@ -21,8 +21,8 @@ def entrenar_y_evaluar(df):
     # Agregar interacciones
     X['mes_dia'] = X['mes'] * X['dia_semana']
     
-    # Variable objetivo: stock necesario (esto depende de la lógica que determines)
-    y = df['stock_necesario']  # La variable stock_necesario debe estar en tus datos
+    # Variable objetivo
+    y = df['cantidad_vendida']
     
     # Normalizar features
     scaler = StandardScaler()
@@ -36,20 +36,20 @@ def entrenar_y_evaluar(df):
         random_state=42
     )
     
-    # Crear modelo
+    # Crear modelo con parámetros optimizados
     modelo = RandomForestRegressor(
-        n_estimators=200,
-        max_depth=10,
-        min_samples_split=5,
-        min_samples_leaf=2,
+        n_estimators=200,          # Más árboles
+        max_depth=10,              # Limitar profundidad para evitar overfitting
+        min_samples_split=5,       # Mínimo de muestras para dividir un nodo
+        min_samples_leaf=2,        # Mínimo de muestras en hojas
         random_state=42,
-        n_jobs=-1
+        n_jobs=-1                  # Usar todos los núcleos disponibles
     )
     
     # Validación cruzada
     cv_scores = cross_val_score(modelo, X_scaled, y, cv=5, scoring='r2')
     
-    # Entrenar modelo
+    # Entrenar modelo final
     modelo.fit(X_train, y_train)
     
     # Predicciones
@@ -70,8 +70,9 @@ def entrenar_y_evaluar(df):
     
     # Crear DataFrame con resultados
     resultados = pd.DataFrame({
-        'Fecha': df['fecha_venta'],  # Asegúrate de tener esta columna
-        'Predicción de Stock Necesario': predicciones_test
+        'Valor Real': y_test,
+        'Predicción': predicciones_test,
+        'Diferencia': abs(y_test - predicciones_test)
     })
     
     # Métricas adicionales
@@ -85,6 +86,18 @@ def entrenar_y_evaluar(df):
     }
     
     return modelo, resultados, metricas, importancia
+
+def analizar_errores(resultados):
+    """Analiza los errores del modelo en detalle"""
+    error_analysis = {
+        'error_medio': resultados['Diferencia'].mean(),
+        'error_mediano': resultados['Diferencia'].median(),
+        'error_std': resultados['Diferencia'].std(),
+        'error_max': resultados['Diferencia'].max(),
+        'error_min': resultados['Diferencia'].min()
+    }
+    return error_analysis
+
 
 
 
