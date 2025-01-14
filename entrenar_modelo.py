@@ -1,40 +1,31 @@
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+# entrenar_modelo.py
 import joblib
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
 
 # Entrenamiento del modelo
-def entrenar_modelo(df, frecuencia):  # Ahora acepta 'df' y 'frecuencia'
-    # Preprocesamiento de los datos
+def entrenar_modelo(df, frecuencia):
+    # Preprocesamiento de los datos (asumiendo que ya se prepara previamente)
     X = df[['precio_unitario', 'cantidad_promocion', 'temperatura', 'humedad']]  # Características
     y = df['cantidad_vendida']  # Objetivo
 
+    # Creación del modelo
     modelo = RandomForestRegressor(n_estimators=100, random_state=42)
     modelo.fit(X, y)
 
     # Guardar el modelo entrenado
     joblib.dump(modelo, 'modelo.pkl')
 
-    # Evaluación
+    # Evaluación del modelo
     predicciones = modelo.predict(X)
-    
-    # Calcular métricas de error
-    mae = mean_absolute_error(y, predicciones)
     mse = mean_squared_error(y, predicciones)
+    mae = mean_absolute_error(y, predicciones)  # Calculando el MAE también
     
-    print(f"MAE: {mae}")
-    print(f"MSE: {mse}")
+    print(f"Error cuadrático medio (MSE): {mse}")
+    print(f"Error absoluto medio (MAE): {mae}")
     
-    return modelo, mae, mse  # Devuelve el modelo, MAE y MSE
+    return modelo, mae, mse
 
-# Predicción del stock
-def predecir_stock(precio_unitario, cantidad_promocion, temperatura, humedad):
-    # Cargar el modelo entrenado
-    modelo = joblib.load('modelo.pkl')
-
-    # Realizar la predicción
-    prediccion = modelo.predict([[precio_unitario, cantidad_promocion, temperatura, humedad]])
-    return prediccion[0]
 
 
 
