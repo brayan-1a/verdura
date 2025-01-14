@@ -1,6 +1,5 @@
 from supabase import create_client
 import pandas as pd
-from datetime import datetime, timedelta
 
 # Configuración de Supabase
 SUPABASE_URL = "https://odlosqyzqrggrhvkdovj.supabase.co"
@@ -11,30 +10,18 @@ def conectar_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def obtener_datos():
-    """Obtener datos necesarios para el modelo"""
+    """Obtener datos históricos de ventas"""
     supabase = conectar_supabase()
     
-    # Obtener ventas con información de productos
+    # Obtener solo los datos necesarios para el entrenamiento
     ventas = supabase.table('ventas').select(
         "producto_id,fecha_venta,cantidad_vendida"
     ).execute()
     
-    # Obtener inventarios
-    inventarios = supabase.table('inventarios').select(
-        "producto_id,fecha_actualizacion,inventario_final"
-    ).execute()
-    
-    # Obtener desperdicios
-    desperdicios = supabase.table('desperdicio').select(
-        "producto_id,fecha_registro,cantidad_perdida"
-    ).execute()
-    
-    # Convertir a DataFrames
+    # Convertir a DataFrame
     df_ventas = pd.DataFrame(ventas.data)
-    df_inventarios = pd.DataFrame(inventarios.data)
-    df_desperdicios = pd.DataFrame(desperdicios.data)
     
-    return df_ventas, df_inventarios, df_desperdicios
+    return df_ventas
 
 
 
