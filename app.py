@@ -16,6 +16,15 @@ from conexion import obtener_datos
 from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
 
+# Diccionario de productos y sus IDs
+productos_dict = {
+    'Tomate': 1,
+    'Pepino': 2,
+    'Zanahoria': 3,
+    'Lechuga': 4,
+    'Cebolla': 5
+}
+
 def main():
     st.title('🥬 Predicción de Stock - Tienda de Verduras')
 
@@ -136,18 +145,21 @@ def main():
     # Predicción de Stock
     elif pagina == "Predicción de Stock":
         if st.session_state.modelo_entrenado:
-            # Permitir seleccionar un producto
-            productos = st.session_state.df_ventas['producto_id'].unique()
-            producto_seleccionado = st.selectbox("Selecciona un producto", productos)
+            # Permitir seleccionar un producto (Ahora con los nombres)
+            producto_seleccionado = st.selectbox(
+                "Selecciona un producto",
+                ["Tomate", "Pepino", "Zanahoria", "Lechuga", "Cebolla"]
+            )
+            producto_id = productos_dict[producto_seleccionado]
 
             # Obtener el DataFrame de las ventas del producto seleccionado
-            df_producto = st.session_state.df_ventas[st.session_state.df_ventas['producto_id'] == producto_seleccionado]
+            df_producto = st.session_state.df_ventas[st.session_state.df_ventas['producto_id'] == producto_id]
 
             if df_producto.empty:
                 st.warning("No se encontraron datos para este producto.")
             else:
                 # Mostrar información sobre el producto
-                st.subheader(f"Predicción de Stock para el Producto ID: {producto_seleccionado}")
+                st.subheader(f"Predicción de Stock para el Producto: {producto_seleccionado}")
                 st.write(f"Información del Producto:")
                 st.write(df_producto.head())  # Muestra las primeras filas del producto
 
@@ -174,6 +186,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
