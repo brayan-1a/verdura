@@ -32,7 +32,15 @@ def preparar_datos_modelo(df_ventas):
         ['producto_id', 'dia_semana', 'mes']
     )['cantidad_vendida'].mean().reset_index()
     
+    # Verificar si las columnas necesarias existen
+    columnas_necesarias = ['dia_semana', 'mes', 'tendencia', 'es_fin_semana', 'temporada', 'diferencia_inventario', 'cantidad_perdida']
+    columnas_faltantes = [col for col in columnas_necesarias if col not in df_agrupado.columns]
+    
+    if columnas_faltantes:
+        print(f"Faltan las siguientes columnas: {columnas_faltantes}")
+    
     return df_agrupado
+
 
 
 
