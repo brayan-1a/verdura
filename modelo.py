@@ -1,6 +1,7 @@
+# modelo.py
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 import pandas as pd
@@ -10,20 +11,20 @@ def entrenar_y_evaluar(df):
     
     # Features para predecir stock
     features = [
-        'ventas_7d',           # Promedio de ventas últimos 7 días
-        'variabilidad_ventas', # Variabilidad en ventas
-        'tasa_perdida',        # Tasa de pérdida histórica
-        'dia_semana',          # Patrón semanal
-        'mes',                 # Patrón mensual
-        'es_fin_semana'        # Efecto fin de semana
+        'ventas_7d',           
+        'variabilidad_ventas', 
+        'tasa_perdida',        
+        'dia_semana',          
+        'mes',                 
+        'es_fin_semana'        
     ]
     
     X = df[features].copy()
-    y = df['stock_objetivo']  # Objetivo: stock necesario para 7 días
+    y = df['stock_objetivo']
     
     # Manejar valores nulos
     X = X.fillna(0)
-    y = y.fillna(X['ventas_7d'] * 7)  # Stock base si no hay histórico
+    y = y.fillna(X['ventas_7d'] * 7)
     
     # Normalizar features
     scaler = StandardScaler()
@@ -44,9 +45,14 @@ def entrenar_y_evaluar(df):
         random_state=42
     )
     
+    # Calcular cross validation scores
+    cv_scores = cross_val_score(modelo, X_scaled, y, cv=5, scoring='r2')
+    
+    # Entrenar modelo final
     modelo.fit(X_train, y_train)
     
     # Predicciones
+    predicciones_train = modelo.predict(X_train)
     predicciones_test = modelo.predict(X_test)
     
     # Resultados
@@ -56,10 +62,14 @@ def entrenar_y_evaluar(df):
         'Diferencia': abs(y_test - predicciones_test)
     })
     
-    # Métricas
+    # Métricas completas
     metricas = {
+        'rmse_train': np.sqrt(mean_squared_error(y_train, predicciones_train)),
         'rmse_test': np.sqrt(mean_squared_error(y_test, predicciones_test)),
+        'r2_train': r2_score(y_train, predicciones_train),
         'r2_test': r2_score(y_test, predicciones_test),
+        'cv_scores_mean': cv_scores.mean(),
+        'cv_scores_std': cv_scores.std()
     }
     
     # Importancia features
@@ -69,16 +79,6 @@ def entrenar_y_evaluar(df):
     }).sort_values('importancia', ascending=False)
     
     return modelo, resultados, metricas, importancia
-
-def analizar_errores(resultados):
-    """Analiza errores en predicción de stock"""
-    error_analysis = {
-        'error_medio_unidades': resultados['Diferencia'].mean(),
-        'error_mediano_unidades': resultados['Diferencia'].median(),
-        'maximo_error_unidades': resultados['Diferencia'].max(),
-        'stock_insuficiente': (resultados['Stock Predicho'] < resultados['Stock Real']).mean() * 100
-    }
-    return error_analysis
 
 
 
