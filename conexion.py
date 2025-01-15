@@ -33,14 +33,16 @@ def obtener_datos():
     df_inventarios = pd.DataFrame(inventarios.data)
     df_desperdicio = pd.DataFrame(desperdicio.data)
     
-    # Verificar si hay datos de inventarios y desperdicio, si no los hay asignamos valores predeterminados
+    # Verificar si hay datos de inventarios y desperdicio
     if df_inventarios.empty:
         print("Advertencia: No se encontraron datos de inventarios.")
-        df_inventarios = pd.DataFrame(columns=["producto_id", "inventario_inicial", "inventario_final", "fecha_actualizacion"])
+        df_inventarios = pd.DataFrame(columns=["producto_id", "inventario_inicial", 
+                                             "inventario_final", "fecha_actualizacion"])
 
     if df_desperdicio.empty:
         print("Advertencia: No se encontraron datos de desperdicio.")
-        df_desperdicio = pd.DataFrame(columns=["producto_id", "cantidad_perdida", "fecha_registro"])
+        df_desperdicio = pd.DataFrame(columns=["producto_id", "cantidad_perdida", 
+                                             "fecha_registro"])
 
     # Merge de los datos en un único DataFrame
     df_ventas = df_ventas.merge(df_inventarios, on="producto_id", how="left")

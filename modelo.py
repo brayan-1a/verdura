@@ -1,4 +1,3 @@
-# modelo.py
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, cross_val_score
@@ -7,7 +6,18 @@ import numpy as np
 import pandas as pd
 
 def entrenar_y_evaluar(df):
-    """Entrena modelo para predecir stock necesario"""
+    """
+    Entrena modelo para predecir stock necesario
+    
+    Args:
+        df (pd.DataFrame): DataFrame preparado con features y target
+    
+    Returns:
+        tuple: (modelo, resultados, métricas, importancia)
+    """
+    # Validar datos de entrada
+    if df.empty:
+        raise ValueError("El DataFrame está vacío")
     
     # Features para predecir stock
     features = [
@@ -18,6 +28,10 @@ def entrenar_y_evaluar(df):
         'mes',                 
         'es_fin_semana'        
     ]
+    
+    # Validar que existan todas las características necesarias
+    if any(feature not in df.columns for feature in features):
+        raise ValueError(f"Faltan algunas características requeridas: {features}")
     
     X = df[features].copy()
     y = df['stock_objetivo']
@@ -42,7 +56,8 @@ def entrenar_y_evaluar(df):
         max_depth=15,
         min_samples_split=4,
         min_samples_leaf=2,
-        random_state=42
+        random_state=42,
+        n_jobs=-1  # Usar todos los cores disponibles
     )
     
     # Calcular cross validation scores
@@ -79,6 +94,37 @@ def entrenar_y_evaluar(df):
     }).sort_values('importancia', ascending=False)
     
     return modelo, resultados, metricas, importancia
+
+def analizar_errores(resultados):
+    """
+    Analiza los errores en las predicciones de stock
+    
+    Args:
+        resultados (pd.DataFrame): DataFrame con predicciones y valores reales
+    
+    Returns:
+        dict: Diccionario con métricas de análisis de errores
+    """
+    # Validar datos de entrada
+    if resultados.empty:
+        raise ValueError("El DataFrame de resultados está vacío")
+        
+    # Calcular métricas de error
+    error_medio_unidades = resultados['Diferencia'].mean()
+    error_mediano_unidades = resultados['Diferencia'].median()
+    maximo_error_unidades = resultados['Diferencia'].max()
+    
+    # Calcular porcentaje de casos donde el stock predicho fue insuficiente
+    stock_insuficiente = (
+        (resultados['Stock Predicho'] < resultados['Stock Real']).mean() * 100
+    )
+    
+    return {
+        'error_medio_unidades': error_medio_unidades,
+        'error_mediano_unidades': error_mediano_unidades,
+        'maximo_error_unidades': maximo_error_unidades,
+        'stock_insuficiente': stock_insuficiente
+    }
 
 
 
