@@ -1,3 +1,4 @@
+# modelo.py
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
@@ -87,6 +88,26 @@ def entrenar_y_evaluar(df):
     
     return modelo, resultados, metricas, importancia
 
+def analizar_errores(resultados):
+    """Analiza los errores del modelo en detalle"""
+    if not isinstance(resultados, pd.DataFrame):
+        raise TypeError("Los resultados deben ser un DataFrame")
+        
+    if 'Diferencia' not in resultados.columns:
+        if 'Valor Real' in resultados.columns and 'Predicción' in resultados.columns:
+            resultados['Diferencia'] = abs(resultados['Valor Real'] - resultados['Predicción'])
+        else:
+            raise KeyError("El DataFrame debe contener las columnas 'Valor Real' y 'Predicción'")
+    
+    error_analysis = {
+        'error_medio': resultados['Diferencia'].mean(),
+        'error_mediano': resultados['Diferencia'].median(),
+        'error_std': resultados['Diferencia'].std(),
+        'error_max': resultados['Diferencia'].max(),
+        'error_min': resultados['Diferencia'].min()
+    }
+    
+    return error_analysis
 
 
 
