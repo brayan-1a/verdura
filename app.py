@@ -12,11 +12,11 @@ def main():
     if 'modelo_entrenado' not in st.session_state:
         st.session_state.modelo_entrenado = False
     
-    # Tabs para separar funcionalidades
-    tab1 = st.tab("Entrenar Modelo")
-    
+    # Usamos solo una pestaña ahora
+    tab1 = st.selectbox("Selecciona una opción", ["Entrenar Modelo"])
+
     # Tab 1: Entrenar modelo
-    with tab1:
+    if tab1 == "Entrenar Modelo":
         # Cargar datos
         if 'df_ventas' not in st.session_state:
             with st.spinner('Cargando datos...'):
@@ -91,6 +91,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
