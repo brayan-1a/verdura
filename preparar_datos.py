@@ -2,45 +2,42 @@ import pandas as pd
 import numpy as np
 
 def preparar_datos_modelo(df_ventas):
-    # Convertir fechas a datetime
-    df_ventas['fecha_venta'] = pd.to_datetime(df_ventas['fecha_venta'])
-    
-    # Crear características base
-    df_preparado = df_ventas.copy()
-    df_preparado['dia_semana'] = df_preparado['fecha_venta'].dt.dayofweek
-    df_preparado['mes'] = df_preparado['fecha_venta'].dt.month
-    df_preparado['es_fin_semana'] = df_preparado['dia_semana'].isin([5, 6]).astype(int)
-    df_preparado['temporada'] = pd.cut(df_preparado['mes'], bins=[0, 3, 6, 9, 12], labels=[0, 1, 2, 3])
-    
-    # Asegurar que todas las columnas necesarias existan
-    if 'inventario_inicial' not in df_preparado.columns:
-        df_preparado['inventario_inicial'] = 0
-    if 'inventario_final' not in df_preparado.columns:
-        df_preparado['inventario_final'] = 0
-    if 'cantidad_perdida' not in df_preparado.columns:
-        df_preparado['cantidad_perdida'] = 0
-        
-    # Calcular diferencia de inventario
-    df_preparado['diferencia_inventario'] = df_preparado['inventario_inicial'] - df_preparado['inventario_final']
-    
-    # Agregar tendencia
-    df_preparado['tendencia'] = np.arange(len(df_preparado))
+    """Prepara los datos para predicción de stock"""
+    df = df_ventas.copy()
+    df['fecha_venta'] = pd.to_datetime(df['fecha_venta'])
     
     # Agrupar por producto y fecha
-    df_agrupado = df_preparado.groupby(
-        ['producto_id', 'fecha_venta']
-    ).agg({
+    df_diario = df.groupby(['producto_id', 'fecha_venta']).agg({
         'cantidad_vendida': 'sum',
-        'dia_semana': 'first',
-        'mes': 'first',
-        'tendencia': 'first',
-        'es_fin_semana': 'first',
-        'temporada': 'first',
-        'diferencia_inventario': 'sum',
-        'cantidad_perdida': 'sum'
+        'cantidad_perdida': 'sum',
+        'inventario_inicial': 'first',
+        'inventario_final': 'last'
     }).reset_index()
     
-    return df_agrupado
+    # Calcular métricas de stock
+    df_diario['dias_stock'] = df_diario['inventario_final'] / df_diario['cantidad_vendida']
+    df_diario['stock_objetivo'] = df_diario['cantidad_vendida'] * 7  # Stock para 7 días
+    
+    # Características temporales
+    df_diario['dia_semana'] = df_diario['fecha_venta'].dt.dayofweek
+    df_diario['mes'] = df_diario['fecha_venta'].dt.month
+    df_diario['es_fin_semana'] = df_diario['dia_semana'].isin([5, 6]).astype(int)
+    
+    # Calcular ventas históricas (últimos 7 días)
+    df_diario['ventas_7d'] = df_diario.groupby('producto_id')['cantidad_vendida'].transform(
+        lambda x: x.rolling(window=7, min_periods=1).mean()
+    )
+    
+    # Calcular tasa de pérdida
+    df_diario['tasa_perdida'] = (df_diario['cantidad_perdida'] / 
+                                (df_diario['cantidad_vendida'] + df_diario['cantidad_perdida']))
+    
+    # Calcular stock de seguridad (basado en variabilidad de ventas)
+    df_diario['variabilidad_ventas'] = df_diario.groupby('producto_id')['cantidad_vendida'].transform(
+        lambda x: x.rolling(window=7, min_periods=1).std()
+    )
+    
+    return df_diario
 
 
 
