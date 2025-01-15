@@ -8,10 +8,20 @@ import pandas as pd
 def entrenar_y_evaluar(df):
     """Entrena el modelo con características mejoradas y validación cruzada"""
     
+    # Verificar que todas las columnas necesarias existen
+    columnas_requeridas = ['dia_semana', 'mes', 'tendencia', 'es_fin_semana', 
+                          'temporada', 'diferencia_inventario', 'cantidad_perdida']
+    
+    for columna in columnas_requeridas:
+        if columna not in df.columns:
+            raise KeyError(f"La columna {columna} no está presente en los datos")
+    
     # Preparar las características (features)
-    X = df[['dia_semana', 'mes', 'tendencia', 'es_fin_semana', 'temporada', 'diferencia_inventario', 'cantidad_perdida']].copy()
+    X = df[columnas_requeridas].copy()
     
     # Variable objetivo
+    if 'cantidad_vendida' not in df.columns:
+        raise KeyError("La columna 'cantidad_vendida' no está presente en los datos")
     y = df['cantidad_vendida']
     
     # Normalizar las características
@@ -28,10 +38,10 @@ def entrenar_y_evaluar(df):
     
     # Optimización de hiperparámetros con GridSearch
     param_grid = {
-        'n_estimators': [100, 200, 300],
-        'max_depth': [10, 15, 20],
-        'min_samples_split': [2, 4, 6],
-        'min_samples_leaf': [1, 2, 3]
+        'n_estimators': [100, 200],
+        'max_depth': [10, 15],
+        'min_samples_split': [2, 4],
+        'min_samples_leaf': [1, 2]
     }
     
     # Usamos GridSearchCV para encontrar los mejores parámetros
@@ -65,29 +75,17 @@ def entrenar_y_evaluar(df):
         'Diferencia': abs(y_test - predicciones_test)
     })
     
-    # Métricas adicionales
+    # Métricas
     metricas = {
         'rmse_train': rmse_train,
         'rmse_test': rmse_test,
         'r2_train': r2_train,
         'r2_test': r2_test,
-        'cv_scores_mean': grid_search.best_score_,
+        'cv_scores_mean': -grid_search.best_score_,  # Convertimos a positivo
         'cv_scores_std': grid_search.cv_results_['std_test_score'].mean()
     }
     
     return modelo, resultados, metricas, importancia
-
-def analizar_errores(resultados):
-    """Analiza los errores del modelo en detalle"""
-    error_analysis = {
-        'error_medio': resultados['Diferencia'].mean(),
-        'error_mediano': resultados['Diferencia'].median(),
-        'error_std': resultados['Diferencia'].std(),
-        'error_max': resultados['Diferencia'].max(),
-        'error_min': resultados['Diferencia'].min()
-    }
-    return error_analysis
-
 
 
 
