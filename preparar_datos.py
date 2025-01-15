@@ -1,33 +1,39 @@
 import pandas as pd
 
-def preparar_datos_modelo(df_ventas, df_inventarios, df_desperdicio):
-    # Convertir fechas a datetime
-    df_ventas['fecha_venta'] = pd.to_datetime(df_ventas['fecha_venta'])
-    df_inventarios['fecha_actualizacion'] = pd.to_datetime(df_inventarios['fecha_actualizacion'])
-    df_desperdicio['fecha_registro'] = pd.to_datetime(df_desperdicio['fecha_registro'])
+def conectar_supabase():
+    """Crear conexión con Supabase"""
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+def obtener_datos():
+    """Obtener datos históricos de ventas, inventarios y desperdicio"""
+    supabase = conectar_supabase()
     
-    # Unir los datos de ventas con los de inventarios
-    df = pd.merge(df_ventas, df_inventarios, how='left', on='producto_id')
+    # Obtener datos de ventas
+    ventas = supabase.table('ventas').select(
+        "producto_id,fecha_venta,cantidad_vendida"
+    ).execute()
     
-    # Unir los datos de desperdicio
-    df = pd.merge(df, df_desperdicio, how='left', on='producto_id')
+    # Obtener datos de inventario
+    inventarios = supabase.table('inventarios').select(
+        "producto_id,inventario_inicial,inventario_final,fecha_actualizacion"
+    ).execute()
     
-    # Crear nuevas características
-    df['dia_semana'] = df['fecha_venta'].dt.dayofweek
-    df['mes'] = df['fecha_venta'].dt.month
+    # Obtener datos de desperdicio
+    desperdicio = supabase.table('desperdicio').select(
+        "producto_id,cantidad_perdida,fecha_registro"
+    ).execute()
     
-    # Rellenar los valores nulos de desperdicio con 0 (si no hay desperdicio registrado)
-    df['cantidad_perdida'] = df['cantidad_perdida'].fillna(0)
+    # Convertir a DataFrame
+    df_ventas = pd.DataFrame(ventas.data)
+    df_inventarios = pd.DataFrame(inventarios.data)
+    df_desperdicio = pd.DataFrame(desperdicio.data)
     
-    # Calcular el stock disponible (stock inicial - ventas - desperdicio)
-    df['stock_disponible'] = df['inventario_inicial'] - df['cantidad_vendida'] - df['cantidad_perdida']
+    # Merge los datos en un único DataFrame
+    df_ventas = df_ventas.merge(df_inventarios, on="producto_id", how="left")
+    df_ventas = df_ventas.merge(df_desperdicio, on="producto_id", how="left")
     
-    # Seleccionar características relevantes para el modelo
-    df_agrupado = df.groupby(
-        ['producto_id', 'dia_semana', 'mes']
-    )[['cantidad_vendida', 'stock_disponible']].mean().reset_index()
-    
-    return df_agrupado
+    return df_ventas
+
 
 
 

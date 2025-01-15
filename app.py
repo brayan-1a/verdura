@@ -6,7 +6,7 @@ from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
 
 def main():
-    st.title('Evaluación del Modelo Optimizado - Predicción de Stock de Verduras')
+    st.title('Evaluación del Modelo Optimizado - Tienda de Verduras')
 
     # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
@@ -20,7 +20,7 @@ def main():
         # Cargar datos
         if 'df_ventas' not in st.session_state:
             with st.spinner('Cargando datos...'):
-                st.session_state.df_ventas, st.session_state.df_inventarios, st.session_state.df_desperdicio = obtener_datos()
+                st.session_state.df_ventas = obtener_datos()
                 st.success('Datos cargados correctamente')
         
         # Mostrar muestra de datos
@@ -32,11 +32,7 @@ def main():
             st.session_state.modelo_entrenado = True
             
             with st.spinner('Preparando datos...'):
-                df_preparado = preparar_datos_modelo(
-                    st.session_state.df_ventas, 
-                    st.session_state.df_inventarios, 
-                    st.session_state.df_desperdicio
-                )
+                df_preparado = preparar_datos_modelo(st.session_state.df_ventas)
                 st.success('Datos preparados correctamente')
             
             # Entrenar modelo y obtener resultados
@@ -95,6 +91,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 

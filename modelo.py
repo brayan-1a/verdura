@@ -1,4 +1,4 @@
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
@@ -8,49 +8,39 @@ import pandas as pd
 def entrenar_y_evaluar(df):
     """Entrena el modelo con características mejoradas y validación cruzada"""
     
-    # Preparar características adicionales
-    X = df[['dia_semana', 'mes']].copy()
+    # Preparar las características (features)
+    X = df[['dia_semana', 'mes', 'tendencia', 'es_fin_semana', 'temporada', 'diferencia_inventario', 'cantidad_perdida']].copy()
     
-    # Agregar características de tendencia temporal
-    X['tendencia'] = np.arange(len(X))
+    # Variable objetivo
+    y = df['cantidad_vendida']
     
-    # Agregar características estacionales
-    X['es_fin_semana'] = X['dia_semana'].isin([5, 6]).astype(int)
-    X['temporada'] = pd.cut(X['mes'], bins=[0,3,6,9,12], labels=[0,1,2,3])
-    
-    # Agregar interacciones
-    X['mes_dia'] = X['mes'] * X['dia_semana']
-    
-    # Variable objetivo (ahora predecimos el stock disponible)
-    y = df['stock_disponible']
-    
-    # Normalizar características
+    # Normalizar las características
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
     
-    # Dividir datos
+    # Dividir los datos en entrenamiento y prueba
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y, 
         test_size=0.2, 
         random_state=42
     )
     
-    # Crear modelo con parámetros optimizados
-    modelo = RandomForestRegressor(
-        n_estimators=300,          
-        max_depth=15,              
-        min_samples_split=4,       
-        min_samples_leaf=2,        
-        random_state=42,
-        n_jobs=-1                 
-    )
+    # Optimización de hiperparámetros con GridSearch
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 15, 20],
+        'min_samples_split': [2, 4, 6],
+        'min_samples_leaf': [1, 2, 3]
+    }
     
-    # Validación cruzada
-    cv_scores = cross_val_score(modelo, X_scaled, y, cv=5, scoring='r2')
+    # Usamos GridSearchCV para encontrar los mejores parámetros
+    rf = RandomForestRegressor(random_state=42)
+    grid_search = GridSearchCV(rf, param_grid, cv=5, scoring='neg_mean_squared_error', n_jobs=-1)
+    grid_search.fit(X_train, y_train)
     
-    # Entrenar modelo final
-    modelo.fit(X_train, y_train)
+    # Entrenamos el modelo con los mejores parámetros
+    modelo = grid_search.best_estimator_
     
     # Predicciones
     predicciones_train = modelo.predict(X_train)
@@ -81,8 +71,8 @@ def entrenar_y_evaluar(df):
         'rmse_test': rmse_test,
         'r2_train': r2_train,
         'r2_test': r2_test,
-        'cv_scores_mean': cv_scores.mean(),
-        'cv_scores_std': cv_scores.std()
+        'cv_scores_mean': grid_search.best_score_,
+        'cv_scores_std': grid_search.cv_results_['std_test_score'].mean()
     }
     
     return modelo, resultados, metricas, importancia
@@ -97,6 +87,7 @@ def analizar_errores(resultados):
         'error_min': resultados['Diferencia'].min()
     }
     return error_analysis
+
 
 
 
