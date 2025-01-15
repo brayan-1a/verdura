@@ -1,20 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import pickle
 from conexion import obtener_datos
 from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
-from sklearn.metrics import mean_squared_error, r2_score
-
-def cargar_modelo(file):
-    """Carga un modelo desde un archivo .pkl."""
-    try:
-        modelo = pickle.load(file)
-        return modelo
-    except Exception as e:
-        st.error(f"Error al cargar el modelo: {e}")
-        return None
 
 def main():
     st.title('Evaluación del Modelo Optimizado - Tienda de Verduras')
@@ -24,7 +13,7 @@ def main():
         st.session_state.modelo_entrenado = False
     
     # Tabs para separar funcionalidades
-    tab1, tab2 = st.tabs(["Entrenar Modelo", "Cargar Modelo Preentrenado"])
+    tab1 = st.tab("Entrenar Modelo")
     
     # Tab 1: Entrenar modelo
     with tab1:
@@ -99,51 +88,10 @@ def main():
                 title='Comparación de Predicciones vs Valores Reales'
             )
             st.plotly_chart(fig_predictions)
-    
-    # Tab 2: Cargar modelo preentrenado
-    with tab2:
-        st.subheader("Cargar Modelo Preentrenado")
-        archivo = st.file_uploader("Sube tu modelo entrenado (.pkl)", type=["pkl"])
-        
-        if archivo is not None:
-            modelo = cargar_modelo(archivo)
-            
-            if modelo is not None:
-                st.write("### Modelo Cargado Exitosamente")
-                st.write(f"Modelo: {modelo}")  # Información básica del modelo
-                
-                # Subir datos de prueba
-                archivo_datos = st.file_uploader("Sube datos de prueba (CSV)", type=["csv"])
-                
-                if archivo_datos is not None:
-                    datos = pd.read_csv(archivo_datos)
-                    st.write("### Datos Cargados")
-                    st.dataframe(datos.head())
-                    
-                    if 'target' in datos.columns:
-                        X_test = datos.drop(columns=['target'])
-                        y_test = datos['target']
-                        
-                        # Calcular métricas
-                        predicciones = modelo.predict(X_test)
-                        rmse = mean_squared_error(y_test, predicciones, squared=False)
-                        r2 = r2_score(y_test, predicciones)
-                        
-                        st.write("### Resultados del Modelo")
-                        st.write(f"RMSE: {rmse:.2f}")
-                        st.write(f"R²: {r2:.2f}")
-                        
-                        # Mostrar predicciones
-                        datos['Predicciones'] = predicciones
-                        st.write("### Predicciones vs Valores Reales")
-                        st.dataframe(datos[['target', 'Predicciones']])
-                    else:
-                        st.error("El archivo de datos debe contener una columna llamada 'target'.")
-            else:
-                st.error("Hubo un error al cargar el modelo. Intenta nuevamente.")
 
 if __name__ == '__main__':
     main()
+
 
 
 
