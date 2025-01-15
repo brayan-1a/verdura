@@ -1,38 +1,37 @@
 import pandas as pd
 
-def conectar_supabase():
-    """Crear conexión con Supabase"""
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+def preparar_datos_modelo(df_ventas):
+    # Convertir fechas a datetime
+    df_ventas['fecha_venta'] = pd.to_datetime(df_ventas['fecha_venta'])
+    
+    # Crear características para el modelo
+    df_ventas['dia_semana'] = df_ventas['fecha_venta'].dt.dayofweek
+    df_ventas['mes'] = df_ventas['fecha_venta'].dt.month
+    df_ventas['año'] = df_ventas['fecha_venta'].dt.year
+    
+    # Añadir tendencia temporal (por producto)
+    df_ventas['tendencia'] = df_ventas.groupby('producto_id').cumcount()
+    
+    # Estacionalidad
+    df_ventas['es_fin_semana'] = df_ventas['dia_semana'].isin([5, 6]).astype(int)
+    df_ventas['temporada'] = pd.cut(df_ventas['mes'], bins=[0, 3, 6, 9, 12], labels=[0, 1, 2, 3])
+    
+    # Agregar diferencia de inventario (inicial - final)
+    df_ventas['diferencia_inventario'] = df_ventas['inventario_inicial'] - df_ventas['inventario_final']
+    
+    # Agregar cantidad perdida
+    df_ventas['cantidad_perdida'] = df_ventas['cantidad_perdida'].fillna(0)  # Si no hay pérdida, ponemos 0
+    
+    # Agrupar datos por producto, día de la semana y mes
+    df_agrupado = df_ventas.groupby(
+        ['producto_id', 'dia_semana', 'mes', 'año']
+    )['cantidad_vendida'].mean().reset_index()
 
-def obtener_datos():
-    """Obtener datos históricos de ventas, inventarios y desperdicio"""
-    supabase = conectar_supabase()
-    
-    # Obtener datos de ventas
-    ventas = supabase.table('ventas').select(
-        "producto_id,fecha_venta,cantidad_vendida"
-    ).execute()
-    
-    # Obtener datos de inventario
-    inventarios = supabase.table('inventarios').select(
-        "producto_id,inventario_inicial,inventario_final,fecha_actualizacion"
-    ).execute()
-    
-    # Obtener datos de desperdicio
-    desperdicio = supabase.table('desperdicio').select(
-        "producto_id,cantidad_perdida,fecha_registro"
-    ).execute()
-    
-    # Convertir a DataFrame
-    df_ventas = pd.DataFrame(ventas.data)
-    df_inventarios = pd.DataFrame(inventarios.data)
-    df_desperdicio = pd.DataFrame(desperdicio.data)
-    
-    # Merge los datos en un único DataFrame
-    df_ventas = df_ventas.merge(df_inventarios, on="producto_id", how="left")
-    df_ventas = df_ventas.merge(df_desperdicio, on="producto_id", how="left")
-    
-    return df_ventas
+    # Normalizar las características
+    df_agrupado['cantidad_vendida'] = (df_agrupado['cantidad_vendida'] - df_agrupado['cantidad_vendida'].mean()) / df_agrupado['cantidad_vendida'].std()
+
+    return df_agrupado
+
 
 
 
