@@ -9,15 +9,18 @@ def preparar_datos_modelo(df_ventas):
     df_ventas['mes'] = df_ventas['fecha_venta'].dt.month
     df_ventas['año'] = df_ventas['fecha_venta'].dt.year
     
+    # Verificar que las columnas de inventario existen
+    if 'inventario_inicial' in df_ventas.columns and 'inventario_final' in df_ventas.columns:
+        df_ventas['diferencia_inventario'] = df_ventas['inventario_inicial'] - df_ventas['inventario_final']
+    else:
+        df_ventas['diferencia_inventario'] = 0  # Si no están presentes, asignamos 0
+    
     # Añadir tendencia temporal (por producto)
     df_ventas['tendencia'] = df_ventas.groupby('producto_id').cumcount()
     
     # Estacionalidad
     df_ventas['es_fin_semana'] = df_ventas['dia_semana'].isin([5, 6]).astype(int)
     df_ventas['temporada'] = pd.cut(df_ventas['mes'], bins=[0, 3, 6, 9, 12], labels=[0, 1, 2, 3])
-    
-    # Agregar diferencia de inventario (inicial - final)
-    df_ventas['diferencia_inventario'] = df_ventas['inventario_inicial'] - df_ventas['inventario_final']
     
     # Agregar cantidad perdida
     df_ventas['cantidad_perdida'] = df_ventas['cantidad_perdida'].fillna(0)  # Si no hay pérdida, ponemos 0
@@ -31,6 +34,7 @@ def preparar_datos_modelo(df_ventas):
     df_agrupado['cantidad_vendida'] = (df_agrupado['cantidad_vendida'] - df_agrupado['cantidad_vendida'].mean()) / df_agrupado['cantidad_vendida'].std()
 
     return df_agrupado
+
 
 
 
