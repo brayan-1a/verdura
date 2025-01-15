@@ -77,6 +77,7 @@ def main():
                     st.session_state.metricas = metricas
                     st.session_state.importancia = importancia
                     st.session_state.error_analysis = error_analysis
+                    st.session_state.modelo = modelo  # Guardamos el modelo en session_state
                     
                     st.success('✨ ¡Modelo entrenado exitosamente!')
             except Exception as e:
@@ -169,8 +170,13 @@ def main():
                         # Preparar datos para la predicción
                         df_preparado = preparar_datos_modelo(df_producto)
 
+                        # Verificar si el modelo está en session_state
+                        if 'modelo' not in st.session_state:
+                            st.error("❌ El modelo no está disponible. Por favor, entrene el modelo primero.")
+                            return
+
                         # Realizar la predicción usando el modelo entrenado
-                        modelo = st.session_state.modelo  # Asumiendo que el modelo se guarda en session_state
+                        modelo = st.session_state.modelo  # Ahora el modelo está en session_state
                         X = df_preparado[['ventas_7d', 'variabilidad_ventas', 'tasa_perdida', 'dia_semana', 'mes', 'es_fin_semana']]
                         prediccion = modelo.predict(X)
 
@@ -186,6 +192,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
