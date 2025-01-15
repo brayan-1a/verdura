@@ -10,15 +10,27 @@ def conectar_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def obtener_datos():
-    """Obtener datos relevantes para predecir el stock"""
+    """Obtener datos históricos de ventas, inventarios y desperdicios"""
     supabase = conectar_supabase()
-
-    # Aquí obtienes los datos necesarios, por ejemplo, de ventas e inventarios
+    
+    # Obtener los datos de ventas
     ventas = supabase.table('ventas').select(
         "producto_id, fecha_venta, cantidad_vendida"
+    ).execute()
+    
+    # Obtener los datos de inventarios
+    inventarios = supabase.table('inventarios').select(
+        "producto_id, fecha_actualizacion, inventario_inicial, inventario_final"
+    ).execute()
+
+    # Obtener los datos de desperdicios
+    desperdicios = supabase.table('desperdicio').select(
+        "producto_id, fecha_registro, cantidad_perdida"
     ).execute()
 
     # Convertir a DataFrame
     df_ventas = pd.DataFrame(ventas.data)
+    df_inventarios = pd.DataFrame(inventarios.data)
+    df_desperdicio = pd.DataFrame(desperdicios.data)
     
-    return df_ventas
+    return df_ventas, df_inventarios, df_desperdicio
