@@ -4,6 +4,26 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 import pandas as pd
+from supabase import create_client
+from conexion import conectar_supabase  # Asumo que la función conectar_supabase está en el archivo conexion.py
+
+def guardar_predicciones_en_supabase(producto, recomendacion_stock, ventas_promedio, tasa_rotacion, tendencia_ventas, tasa_perdida):
+    """Guardar las predicciones en la tabla de predicciones de Supabase"""
+    # Crear la conexión con Supabase
+    supabase = conectar_supabase()
+    
+    # Datos a insertar
+    prediccion_data = {
+        "producto": producto,
+        "recomendacion_stock": recomendacion_stock,
+        "ventas_promedio": ventas_promedio,
+        "tasa_rotacion": tasa_rotacion,
+        "tendencia_ventas": tendencia_ventas,
+        "tasa_perdida": tasa_perdida,
+    }
+    
+    # Insertar en la tabla de predicciones
+    supabase.table('predicciones').insert(prediccion_data).execute()
 
 def entrenar_y_evaluar(df):
     """
@@ -38,7 +58,7 @@ def entrenar_y_evaluar(df):
     X_scaled = scaler.fit_transform(X)
     X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
     
-    # Split datos con stratificación por mes para mantener la distribución temporal
+    # Split datos con estratificación por mes para mantener la distribución temporal
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y, 
         test_size=0.2, 
@@ -89,6 +109,17 @@ def entrenar_y_evaluar(df):
         'importancia': modelo.feature_importances_
     }).sort_values('importancia', ascending=False)
     
+    # Suponiendo que la predicción es para un producto específico
+    producto = "Producto A"  # Este valor lo puedes obtener de las predicciones mismas
+    recomendacion_stock = 51  # Este valor es un ejemplo, deberías obtenerlo del modelo
+    ventas_promedio = 5.7  # Este valor es un ejemplo, deberías obtenerlo del modelo
+    tasa_rotacion = 0.09  # Este valor es un ejemplo, deberías obtenerlo del modelo
+    tendencia_ventas = 50.0  # Este valor es un ejemplo, deberías obtenerlo del modelo
+    tasa_perdida = 68.4  # Este valor es un ejemplo, deberías obtenerlo del modelo
+
+    # Guardamos las predicciones en la base de datos
+    guardar_predicciones_en_supabase(producto, recomendacion_stock, ventas_promedio, tasa_rotacion, tendencia_ventas, tasa_perdida)
+
     return modelo, resultados, metricas, importancia
 
 def analizar_errores(resultados):
