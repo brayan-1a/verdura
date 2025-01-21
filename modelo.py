@@ -1,13 +1,14 @@
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 import pandas as pd
 
 def entrenar_y_evaluar(df):
     """
-    Entrena modelo para predecir stock necesario
+    Entrena modelo para predecir stock necesario, ajustando hiperparámetros con GridSearchCV.
     
     Args:
         df (pd.DataFrame): DataFrame preparado con features y target
@@ -26,7 +27,7 @@ def entrenar_y_evaluar(df):
         'tasa_perdida',        
         'dia_semana',          
         'mes',                 
-        'es_fin_semana'        
+        'es_fin_semana'       
     ]
     
     # Validar que existan todas las características necesarias
@@ -50,25 +51,30 @@ def entrenar_y_evaluar(df):
         X_scaled, y, test_size=0.2, random_state=42
     )
     
-    # Entrenar modelo
-    modelo = RandomForestRegressor(
-        n_estimators=200,
-        max_depth=15,
-        min_samples_split=4,
-        min_samples_leaf=2,
-        random_state=42,
-        n_jobs=-1  # Usar todos los cores disponibles
-    )
+    # Definir el modelo de Random Forest
+    modelo = RandomForestRegressor(random_state=42, n_jobs=-1)
     
-    # Calcular cross validation scores
-    cv_scores = cross_val_score(modelo, X_scaled, y, cv=5, scoring='r2')
+    # Definir el espacio de búsqueda para los hiperparámetros
+    parametros = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [10, 15, 20, None],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+    }
     
-    # Entrenar modelo final
-    modelo.fit(X_train, y_train)
+    # Usar GridSearchCV para encontrar los mejores hiperparámetros
+    grid_search = GridSearchCV(estimator=modelo, param_grid=parametros, 
+                               cv=5, n_jobs=-1, scoring='r2')
+    
+    # Entrenar el modelo con GridSearchCV
+    grid_search.fit(X_train, y_train)
+    
+    # Mejor modelo después de la búsqueda
+    modelo_optimo = grid_search.best_estimator_
     
     # Predicciones
-    predicciones_train = modelo.predict(X_train)
-    predicciones_test = modelo.predict(X_test)
+    predicciones_train = modelo_optimo.predict(X_train)
+    predicciones_test = modelo_optimo.predict(X_test)
     
     # Resultados
     resultados = pd.DataFrame({
@@ -83,48 +89,18 @@ def entrenar_y_evaluar(df):
         'rmse_test': np.sqrt(mean_squared_error(y_test, predicciones_test)),
         'r2_train': r2_score(y_train, predicciones_train),
         'r2_test': r2_score(y_test, predicciones_test),
-        'cv_scores_mean': cv_scores.mean(),
-        'cv_scores_std': cv_scores.std()
+        'cv_scores_mean': grid_search.cv_results_['mean_test_score'].mean(),
+        'cv_scores_std': grid_search.cv_results_['std_test_score'].mean()
     }
     
     # Importancia features
     importancia = pd.DataFrame({
         'caracteristica': X.columns,
-        'importancia': modelo.feature_importances_
+        'importancia': modelo_optimo.feature_importances_
     }).sort_values('importancia', ascending=False)
     
-    return modelo, resultados, metricas, importancia
+    return modelo_optimo, resultados, metricas, importancia
 
-def analizar_errores(resultados):
-    """
-    Analiza los errores en las predicciones de stock
-    
-    Args:
-        resultados (pd.DataFrame): DataFrame con predicciones y valores reales
-    
-    Returns:
-        dict: Diccionario con métricas de análisis de errores
-    """
-    # Validar datos de entrada
-    if resultados.empty:
-        raise ValueError("El DataFrame de resultados está vacío")
-        
-    # Calcular métricas de error
-    error_medio_unidades = resultados['Diferencia'].mean()
-    error_mediano_unidades = resultados['Diferencia'].median()
-    maximo_error_unidades = resultados['Diferencia'].max()
-    
-    # Calcular porcentaje de casos donde el stock predicho fue insuficiente
-    stock_insuficiente = (
-        (resultados['Stock Predicho'] < resultados['Stock Real']).mean() * 100
-    )
-    
-    return {
-        'error_medio_unidades': error_medio_unidades,
-        'error_mediano_unidades': error_mediano_unidades,
-        'maximo_error_unidades': maximo_error_unidades,
-        'stock_insuficiente': stock_insuficiente
-    }
 
 
 
