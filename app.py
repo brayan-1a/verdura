@@ -1,18 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import sys
-from pathlib import Path
-
-# Configuración de la página
-st.set_page_config(
-    page_title="Predicción de Stock - Tienda de Verduras",
-    page_icon="🥬",
-    layout="wide"
-)
-
-# Importar funciones locales
-from conexion import obtener_datos
+from conexion import obtener_datos, guardar_prediccion_en_supabase
 from preparar_datos import preparar_datos_modelo
 from modelo import entrenar_y_evaluar, analizar_errores
 
@@ -25,13 +14,20 @@ productos_dict = {
     'Cebolla': 5
 }
 
+# Configuración de la página
+st.set_page_config(
+    page_title="Predicción de Stock - Tienda de Verduras",
+    page_icon="🥬",
+    layout="wide"
+)
+
 def main():
     st.title('🥬 Predicción de Stock - Tienda de Verduras')
 
     # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
         st.session_state.modelo_entrenado = False
-    
+
     # Cargar datos
     if 'df_ventas' not in st.session_state:
         with st.spinner('Cargando datos de Supabase...'):
@@ -46,7 +42,7 @@ def main():
                 st.error(f'❌ Error al cargar datos: {str(e)}')
                 st.info('📌 Verifica la conexión con Supabase y los datos disponibles')
                 return
-    
+
     # Mostrar muestra de datos
     st.subheader('📊 Muestra de Datos')
     st.dataframe(st.session_state.df_ventas.head())
@@ -54,7 +50,7 @@ def main():
     # Crear un selector de pestañas
     pagina = st.selectbox(
         "Selecciona una opción",
-        ["Entrenar Modelo", "Predicción de Stock"]
+        ["Entrenar Modelo", "Predicción de Stock", "Gráficos"]
     )
 
     # Entrenamiento del Modelo
@@ -143,7 +139,7 @@ def main():
             except Exception as e:
                 st.error(f'❌ Error al mostrar resultados: {str(e)}')
 
-     # Predicción de Stock
+    # Predicción de Stock
     elif pagina == "Predicción de Stock":
         if st.session_state.modelo_entrenado:
             # Permitir seleccionar un producto
@@ -175,19 +171,10 @@ def main():
 
                         # Realizar la predicción usando todas las características necesarias
                         modelo = st.session_state.modelo
-                        X = df_preparado[[
-                            'ventas_7d',
-                            'variabilidad_ventas',
-                            'tasa_perdida',
-                            'dia_semana',
-                            'mes',
-                            'es_fin_semana',
-                            'ventas_14d',
-                            'ventas_fin_semana',
-                            'stock_medio',
-                            'tasa_rotacion',
-                            'tendencia_ventas'
-                        ]].iloc[-1:]  # Tomar solo la última fila para la predicción
+                        X = df_preparado[[ 
+                            'ventas_7d', 'variabilidad_ventas', 'tasa_perdida', 'dia_semana', 'mes', 
+                            'es_fin_semana', 'ventas_14d', 'ventas_fin_semana', 'stock_medio', 'tasa_rotacion', 
+                            'tendencia_ventas']].iloc[-1:]  # Tomar solo la última fila para la predicción
 
                         prediccion = modelo.predict(X)
 
@@ -195,18 +182,24 @@ def main():
                         st.subheader('💡 Recomendación de Stock')
                         st.write(f"Recomendación de Stock para el próximo periodo: {prediccion[0]:.0f} unidades")
                         
+                        # Guardar la predicción en Supabase
+                        guardar_prediccion_en_supabase(
+                            producto_seleccionado, 
+                            prediccion[0], 
+                            X['ventas_7d'].iloc[0], 
+                            X['tasa_rotacion'].iloc[0], 
+                            X['tendencia_ventas'].iloc[0], 
+                            X['tasa_perdida'].iloc[0]
+                        )
+                        
                         # Mostrar métricas adicionales que ayuden a entender la predicción
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.metric("Ventas promedio (7 días)", 
-                                    f"{X['ventas_7d'].iloc[0]:.1f}")
-                            st.metric("Tasa de rotación", 
-                                    f"{X['tasa_rotacion'].iloc[0]:.2f}")
+                            st.metric("Ventas promedio (7 días)", f"{X['ventas_7d'].iloc[0]:.1f}")
+                            st.metric("Tasa de rotación", f"{X['tasa_rotacion'].iloc[0]:.2f}")
                         with col2:
-                            st.metric("Tendencia de ventas", 
-                                    f"{X['tendencia_ventas'].iloc[0]:.1%}")
-                            st.metric("Tasa de pérdida", 
-                                    f"{X['tasa_perdida'].iloc[0]:.1%}")
+                            st.metric("Tendencia de ventas", f"{X['tendencia_ventas'].iloc[0]:.1%}")
+                            st.metric("Tasa de pérdida", f"{X['tasa_perdida'].iloc[0]:.1%}")
 
                     except Exception as e:
                         st.error(f'❌ Error al predecir el stock: {str(e)}')
@@ -215,9 +208,16 @@ def main():
         else:
             st.warning("⚠️ No se ha entrenado el modelo aún. Entrénalo primero.")
 
+    # Gráficos (Puedes agregar gráficos relacionados con el análisis visual)
+    elif pagina == "Gráficos":
+        st.title("📊 Gráficos de Análisis")
+        st.subheader("Análisis de Ventas y Stock")
+        fig, ax = plt.subplots()
+        # Aquí puedes agregar más gráficos según lo que quieras mostrar
+        st.pyplot(fig)
+
 if __name__ == '__main__':
     main()
-
 
 
 
