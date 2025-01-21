@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import sys
 from pathlib import Path
 
 # Configuración de la página
@@ -36,7 +35,7 @@ def main():
     if 'df_ventas' not in st.session_state:
         with st.spinner('Cargando datos de Supabase...'):
             try:
-                st.session_state.df_ventas = obtener_datos()
+                st.session_state.df_ventas, st.session_state.df_clima, st.session_state.df_promociones = obtener_datos()
                 if not st.session_state.df_ventas.empty:
                     st.success('✅ Datos cargados correctamente')
                 else:
@@ -59,13 +58,16 @@ def main():
 
     # Entrenamiento del Modelo
     if pagina == "Entrenar Modelo":
-        # Botón para entrenar el modelo
         if st.button('🚀 Entrenar Modelo de Stock', type='primary'):
             try:
                 st.session_state.modelo_entrenado = True
                 
                 with st.spinner('🔄 Preparando datos...'):
-                    df_preparado = preparar_datos_modelo(st.session_state.df_ventas)
+                    df_preparado = preparar_datos_modelo(
+                        st.session_state.df_ventas,
+                        st.session_state.df_clima,
+                        st.session_state.df_promociones
+                    )
                     st.success('✅ Datos preparados correctamente')
                 
                 # Entrenar modelo y obtener resultados
@@ -77,7 +79,7 @@ def main():
                     st.session_state.metricas = metricas
                     st.session_state.importancia = importancia
                     st.session_state.error_analysis = error_analysis
-                    st.session_state.modelo = modelo  # Guardamos el modelo en session_state
+                    st.session_state.modelo = modelo
                     
                     st.success('✨ ¡Modelo entrenado exitosamente!')
             except Exception as e:
@@ -89,13 +91,15 @@ def main():
             try:
                 # Métricas principales
                 st.subheader('📈 Métricas del Modelo')
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric('R² (Test)', f"{st.session_state.metricas['r2_test']:.3f}")
                 with col2:
                     st.metric('RMSE (Test)', f"{st.session_state.metricas['rmse_test']:.2f}")
                 with col3:
                     st.metric('R² CV Promedio', f"{st.session_state.metricas['cv_scores_mean']:.3f}")
+                with col4:
+                    st.metric('MAE', f"{st.session_state.metricas['mae']:.2f}")
                 
                 # Importancia de características
                 st.subheader('🎯 Importancia de Características')
@@ -121,7 +125,24 @@ def main():
                     st.metric('Error Mediano (unidades)', 
                              f"{st.session_state.error_analysis['error_mediano_unidades']:.2f}")
                 
-                # Visualización de predicciones
+                # Visualizaciones adicionales
+                st.subheader('📈 Análisis Temporal')
+                
+                # Error por día de la semana
+                fig_error_dia = px.bar(
+                    st.session_state.error_analysis['error_por_dia'],
+                    title='Error Promedio por Día de la Semana'
+                )
+                st.plotly_chart(fig_error_dia, use_container_width=True)
+                
+                # Error por mes
+                fig_error_mes = px.line(
+                    st.session_state.error_analysis['error_por_mes'],
+                    title='Evolución del Error por Mes'
+                )
+                st.plotly_chart(fig_error_mes, use_container_width=True)
+                
+                # Predicciones vs Valores Reales
                 st.subheader('🎯 Predicciones vs Valores Reales')
                 fig_predictions = px.scatter(
                     st.session_state.resultados,
@@ -146,43 +167,58 @@ def main():
     # Predicción de Stock
     elif pagina == "Predicción de Stock":
         if st.session_state.modelo_entrenado:
-            # Permitir seleccionar un producto (Ahora con los nombres)
             producto_seleccionado = st.selectbox(
                 "Selecciona un producto",
-                ["Tomate", "Pepino", "Zanahoria", "Lechuga", "Cebolla"]
+                list(productos_dict.keys())
             )
             producto_id = productos_dict[producto_seleccionado]
 
-            # Obtener el DataFrame de las ventas del producto seleccionado
             df_producto = st.session_state.df_ventas[st.session_state.df_ventas['producto_id'] == producto_id]
 
             if df_producto.empty:
                 st.warning("No se encontraron datos para este producto.")
             else:
-                # Mostrar información sobre el producto
-                st.subheader(f"Predicción de Stock para el Producto: {producto_seleccionado}")
-                st.write(f"Información del Producto:")
-                st.write(df_producto.head())  # Muestra las primeras filas del producto
+                st.subheader(f"Predicción de Stock para {producto_seleccionado}")
+                
+                # Mostrar estadísticas del producto
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    ventas_promedio = df_producto['cantidad_vendida'].mean()
+                    st.metric("Ventas Promedio Diarias", f"{ventas_promedio:.1f}")
+                with col2:
+                    perdida_promedio = df_producto['cantidad_perdida'].mean()
+                    st.metric("Pérdida Promedio Diaria", f"{perdida_promedio:.1f}")
+                with col3:
+                    rotacion = ventas_promedio / (df_producto['inventario_inicial'].mean() + 1e-6)
+                    st.metric("Índice de Rotación", f"{rotacion:.2f}")
 
-                # Botón para hacer la predicción
                 if st.button('📦 Predecir Stock'):
                     try:
-                        # Preparar datos para la predicción
-                        df_preparado = preparar_datos_modelo(df_producto)
-
-                        # Verificar si el modelo está en session_state
+                        df_preparado = preparar_datos_modelo(
+                            df_producto,
+                            st.session_state.df_clima,
+                            st.session_state.df_promociones
+                        )
+                        
                         if 'modelo' not in st.session_state:
                             st.error("❌ El modelo no está disponible. Por favor, entrene el modelo primero.")
                             return
 
-                        # Realizar la predicción usando el modelo entrenado
-                        modelo = st.session_state.modelo  # Ahora el modelo está en session_state
-                        X = df_preparado[['ventas_7d', 'variabilidad_ventas', 'tasa_perdida', 'dia_semana', 'mes', 'es_fin_semana']]
-                        prediccion = modelo.predict(X)
+                        modelo = st.session_state.modelo
+                        features = ['ventas_7d', 'variabilidad_ventas', 'variabilidad_estacional',
+                                  'tasa_perdida', 'dia_semana', 'mes', 'es_fin_semana',
+                                  'temperatura', 'humedad', 'tiene_promocion']
+                        
+                        X = df_preparado[features]
+                        prediccion_base = modelo.predict(X)
+                        
+                        # Ajustar predicción con factor de seguridad
+                        prediccion_final = ajustar_prediccion_stock(prediccion_base[-1], 
+                                                                  st.session_state.error_analysis['error_medio_unidades'])
 
-                        # Mostrar la predicción
                         st.subheader('💡 Recomendación de Stock')
-                        st.write(f"Recomendación de Stock para el próximo periodo: {prediccion[0]:.2f} unidades")
+                        st.write(f"Stock Base Recomendado: {prediccion_base[-1]:.1f} unidades")
+                        st.write(f"Stock Ajustado (con margen de seguridad): {prediccion_final:.1f} unidades")
 
                     except Exception as e:
                         st.error(f'❌ Error al predecir el stock: {str(e)}')
