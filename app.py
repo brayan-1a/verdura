@@ -24,27 +24,60 @@ productos_dict = {
     'Cebolla': 5
 }
 
+def inicializar_estado():
+    """Inicializa todas las variables de estado necesarias"""
+    if 'modelo_entrenado' not in st.session_state:
+        st.session_state.modelo_entrenado = False
+    if 'df_ventas' not in st.session_state:
+        st.session_state.df_ventas = None
+    if 'df_clima' not in st.session_state:
+        st.session_state.df_clima = None
+    if 'df_promociones' not in st.session_state:
+        st.session_state.df_promociones = None
+    if 'modelo' not in st.session_state:
+        st.session_state.modelo = None
+    if 'resultados' not in st.session_state:
+        st.session_state.resultados = None
+    if 'metricas' not in st.session_state:
+        st.session_state.metricas = None
+    if 'importancia' not in st.session_state:
+        st.session_state.importancia = None
+    if 'error_analysis' not in st.session_state:
+        st.session_state.error_analysis = None
+
+def cargar_datos():
+    """Carga los datos desde Supabase y los almacena en el estado"""
+    with st.spinner('Cargando datos de Supabase...'):
+        try:
+            # Obtener todos los datos
+            df_ventas, df_clima, df_promociones = obtener_datos()
+            
+            # Guardar en el estado de la sesión
+            st.session_state.df_ventas = df_ventas
+            st.session_state.df_clima = df_clima
+            st.session_state.df_promociones = df_promociones
+            
+            if not df_ventas.empty:
+                st.success('✅ Datos cargados correctamente')
+                return True
+            else:
+                st.warning('⚠️ No se encontraron datos en la base de datos')
+                return False
+        except Exception as e:
+            st.error(f'❌ Error al cargar datos: {str(e)}')
+            st.info('📌 Verifica la conexión con Supabase y los datos disponibles')
+            return False
+
 def main():
     st.title('🥬 Predicción de Stock - Tienda de Verduras')
 
-    # Inicializar estado
-    if 'modelo_entrenado' not in st.session_state:
-        st.session_state.modelo_entrenado = False
+    # Inicializar todas las variables de estado
+    inicializar_estado()
     
-    # Cargar datos
-    if 'df_ventas' not in st.session_state:
-        with st.spinner('Cargando datos de Supabase...'):
-            try:
-                st.session_state.df_ventas, st.session_state.df_clima, st.session_state.df_promociones = obtener_datos()
-                if not st.session_state.df_ventas.empty:
-                    st.success('✅ Datos cargados correctamente')
-                else:
-                    st.warning('⚠️ No se encontraron datos en la base de datos')
-                    return
-            except Exception as e:
-                st.error(f'❌ Error al cargar datos: {str(e)}')
-                st.info('📌 Verifica la conexión con Supabase y los datos disponibles')
-                return
+    # Cargar datos si no están cargados
+    if st.session_state.df_ventas is None:
+        if not cargar_datos():
+            return
     
     # Mostrar muestra de datos
     st.subheader('📊 Muestra de Datos')
@@ -75,6 +108,7 @@ def main():
                     modelo, resultados, metricas, importancia = entrenar_y_evaluar(df_preparado)
                     error_analysis = analizar_errores(resultados)
                     
+                    # Guardar todos los resultados en el estado
                     st.session_state.resultados = resultados
                     st.session_state.metricas = metricas
                     st.session_state.importancia = importancia
