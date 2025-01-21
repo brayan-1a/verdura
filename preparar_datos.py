@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd 
 import numpy as np
 
 def preparar_datos_modelo(df_ventas):
@@ -61,6 +61,7 @@ def preparar_datos_modelo(df_ventas):
     df_diario = df_diario.fillna(0)
     
     return df_diario
+
 
 
 
