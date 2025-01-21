@@ -10,6 +10,59 @@ st.set_page_config(
     layout="wide"
 )
 
+# Personalización de estilo con CSS
+st.markdown("""
+    <style>
+        /* Fondo de la página */
+        .reportview-container {
+            background-color: #F4F4F9;
+        }
+
+        /* Barra lateral */
+        .sidebar .sidebar-content {
+            background-color: #2E8B57;
+            color: #FFFFFF;
+        }
+
+        /* Títulos de la aplicación */
+        .css-18e3th9 {
+            color: #2C6B2F;
+        }
+
+        /* Color de los botones */
+        .stButton>button {
+            background-color: #2E8B57;
+            color: white;
+            border-radius: 5px;
+        }
+
+        /* Cuando pasas el mouse sobre los botones */
+        .stButton>button:hover {
+            background-color: #FFCC00;
+        }
+
+        /* Color de las métricas */
+        .stMetric>div {
+            color: #2C6B2F;
+        }
+
+        /* Color de las tablas */
+        .stDataFrame {
+            color: #333333;
+        }
+
+        /* Títulos de las secciones */
+        .css-10trblm {
+            color: #2C6B2F;
+        }
+
+        /* Gráficos */
+        .plotly-graph-div {
+            background-color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Importar funciones locales
 from conexion import obtener_datos
 from preparar_datos import preparar_datos_modelo
@@ -238,6 +291,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
