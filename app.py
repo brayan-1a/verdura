@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import sys
 from pathlib import Path
 
 # Configuración de la página
@@ -24,60 +25,27 @@ productos_dict = {
     'Cebolla': 5
 }
 
-def inicializar_estado():
-    """Inicializa todas las variables de estado necesarias"""
-    if 'modelo_entrenado' not in st.session_state:
-        st.session_state.modelo_entrenado = False
-    if 'df_ventas' not in st.session_state:
-        st.session_state.df_ventas = None
-    if 'df_clima' not in st.session_state:
-        st.session_state.df_clima = None
-    if 'df_promociones' not in st.session_state:
-        st.session_state.df_promociones = None
-    if 'modelo' not in st.session_state:
-        st.session_state.modelo = None
-    if 'resultados' not in st.session_state:
-        st.session_state.resultados = None
-    if 'metricas' not in st.session_state:
-        st.session_state.metricas = None
-    if 'importancia' not in st.session_state:
-        st.session_state.importancia = None
-    if 'error_analysis' not in st.session_state:
-        st.session_state.error_analysis = None
-
-def cargar_datos():
-    """Carga los datos desde Supabase y los almacena en el estado"""
-    with st.spinner('Cargando datos de Supabase...'):
-        try:
-            # Obtener todos los datos
-            df_ventas, df_clima, df_promociones = obtener_datos()
-            
-            # Guardar en el estado de la sesión
-            st.session_state.df_ventas = df_ventas
-            st.session_state.df_clima = df_clima
-            st.session_state.df_promociones = df_promociones
-            
-            if not df_ventas.empty:
-                st.success('✅ Datos cargados correctamente')
-                return True
-            else:
-                st.warning('⚠️ No se encontraron datos en la base de datos')
-                return False
-        except Exception as e:
-            st.error(f'❌ Error al cargar datos: {str(e)}')
-            st.info('📌 Verifica la conexión con Supabase y los datos disponibles')
-            return False
-
 def main():
     st.title('🥬 Predicción de Stock - Tienda de Verduras')
 
-    # Inicializar todas las variables de estado
-    inicializar_estado()
+    # Inicializar estado
+    if 'modelo_entrenado' not in st.session_state:
+        st.session_state.modelo_entrenado = False
     
-    # Cargar datos si no están cargados
-    if st.session_state.df_ventas is None:
-        if not cargar_datos():
-            return
+    # Cargar datos
+    if 'df_ventas' not in st.session_state:
+        with st.spinner('Cargando datos de Supabase...'):
+            try:
+                st.session_state.df_ventas = obtener_datos()
+                if not st.session_state.df_ventas.empty:
+                    st.success('✅ Datos cargados correctamente')
+                else:
+                    st.warning('⚠️ No se encontraron datos en la base de datos')
+                    return
+            except Exception as e:
+                st.error(f'❌ Error al cargar datos: {str(e)}')
+                st.info('📌 Verifica la conexión con Supabase y los datos disponibles')
+                return
     
     # Mostrar muestra de datos
     st.subheader('📊 Muestra de Datos')
@@ -91,16 +59,13 @@ def main():
 
     # Entrenamiento del Modelo
     if pagina == "Entrenar Modelo":
+        # Botón para entrenar el modelo
         if st.button('🚀 Entrenar Modelo de Stock', type='primary'):
             try:
                 st.session_state.modelo_entrenado = True
                 
                 with st.spinner('🔄 Preparando datos...'):
-                    df_preparado = preparar_datos_modelo(
-                        st.session_state.df_ventas,
-                        st.session_state.df_clima,
-                        st.session_state.df_promociones
-                    )
+                    df_preparado = preparar_datos_modelo(st.session_state.df_ventas)
                     st.success('✅ Datos preparados correctamente')
                 
                 # Entrenar modelo y obtener resultados
@@ -108,12 +73,11 @@ def main():
                     modelo, resultados, metricas, importancia = entrenar_y_evaluar(df_preparado)
                     error_analysis = analizar_errores(resultados)
                     
-                    # Guardar todos los resultados en el estado
                     st.session_state.resultados = resultados
                     st.session_state.metricas = metricas
                     st.session_state.importancia = importancia
                     st.session_state.error_analysis = error_analysis
-                    st.session_state.modelo = modelo
+                    st.session_state.modelo = modelo  # Guardamos el modelo en session_state
                     
                     st.success('✨ ¡Modelo entrenado exitosamente!')
             except Exception as e:
@@ -125,15 +89,13 @@ def main():
             try:
                 # Métricas principales
                 st.subheader('📈 Métricas del Modelo')
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric('R² (Test)', f"{st.session_state.metricas['r2_test']:.3f}")
                 with col2:
                     st.metric('RMSE (Test)', f"{st.session_state.metricas['rmse_test']:.2f}")
                 with col3:
                     st.metric('R² CV Promedio', f"{st.session_state.metricas['cv_scores_mean']:.3f}")
-                with col4:
-                    st.metric('MAE', f"{st.session_state.metricas['mae']:.2f}")
                 
                 # Importancia de características
                 st.subheader('🎯 Importancia de Características')
@@ -159,24 +121,7 @@ def main():
                     st.metric('Error Mediano (unidades)', 
                              f"{st.session_state.error_analysis['error_mediano_unidades']:.2f}")
                 
-                # Visualizaciones adicionales
-                st.subheader('📈 Análisis Temporal')
-                
-                # Error por día de la semana
-                fig_error_dia = px.bar(
-                    st.session_state.error_analysis['error_por_dia'],
-                    title='Error Promedio por Día de la Semana'
-                )
-                st.plotly_chart(fig_error_dia, use_container_width=True)
-                
-                # Error por mes
-                fig_error_mes = px.line(
-                    st.session_state.error_analysis['error_por_mes'],
-                    title='Evolución del Error por Mes'
-                )
-                st.plotly_chart(fig_error_mes, use_container_width=True)
-                
-                # Predicciones vs Valores Reales
+                # Visualización de predicciones
                 st.subheader('🎯 Predicciones vs Valores Reales')
                 fig_predictions = px.scatter(
                     st.session_state.resultados,
@@ -201,58 +146,43 @@ def main():
     # Predicción de Stock
     elif pagina == "Predicción de Stock":
         if st.session_state.modelo_entrenado:
+            # Permitir seleccionar un producto (Ahora con los nombres)
             producto_seleccionado = st.selectbox(
                 "Selecciona un producto",
-                list(productos_dict.keys())
+                ["Tomate", "Pepino", "Zanahoria", "Lechuga", "Cebolla"]
             )
             producto_id = productos_dict[producto_seleccionado]
 
+            # Obtener el DataFrame de las ventas del producto seleccionado
             df_producto = st.session_state.df_ventas[st.session_state.df_ventas['producto_id'] == producto_id]
 
             if df_producto.empty:
                 st.warning("No se encontraron datos para este producto.")
             else:
-                st.subheader(f"Predicción de Stock para {producto_seleccionado}")
-                
-                # Mostrar estadísticas del producto
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    ventas_promedio = df_producto['cantidad_vendida'].mean()
-                    st.metric("Ventas Promedio Diarias", f"{ventas_promedio:.1f}")
-                with col2:
-                    perdida_promedio = df_producto['cantidad_perdida'].mean()
-                    st.metric("Pérdida Promedio Diaria", f"{perdida_promedio:.1f}")
-                with col3:
-                    rotacion = ventas_promedio / (df_producto['inventario_inicial'].mean() + 1e-6)
-                    st.metric("Índice de Rotación", f"{rotacion:.2f}")
+                # Mostrar información sobre el producto
+                st.subheader(f"Predicción de Stock para el Producto: {producto_seleccionado}")
+                st.write(f"Información del Producto:")
+                st.write(df_producto.head())  # Muestra las primeras filas del producto
 
+                # Botón para hacer la predicción
                 if st.button('📦 Predecir Stock'):
                     try:
-                        df_preparado = preparar_datos_modelo(
-                            df_producto,
-                            st.session_state.df_clima,
-                            st.session_state.df_promociones
-                        )
-                        
+                        # Preparar datos para la predicción
+                        df_preparado = preparar_datos_modelo(df_producto)
+
+                        # Verificar si el modelo está en session_state
                         if 'modelo' not in st.session_state:
                             st.error("❌ El modelo no está disponible. Por favor, entrene el modelo primero.")
                             return
 
-                        modelo = st.session_state.modelo
-                        features = ['ventas_7d', 'variabilidad_ventas', 'variabilidad_estacional',
-                                  'tasa_perdida', 'dia_semana', 'mes', 'es_fin_semana',
-                                  'temperatura', 'humedad', 'tiene_promocion']
-                        
-                        X = df_preparado[features]
-                        prediccion_base = modelo.predict(X)
-                        
-                        # Ajustar predicción con factor de seguridad
-                        prediccion_final = ajustar_prediccion_stock(prediccion_base[-1], 
-                                                                  st.session_state.error_analysis['error_medio_unidades'])
+                        # Realizar la predicción usando el modelo entrenado
+                        modelo = st.session_state.modelo  # Ahora el modelo está en session_state
+                        X = df_preparado[['ventas_7d', 'variabilidad_ventas', 'tasa_perdida', 'dia_semana', 'mes', 'es_fin_semana']]
+                        prediccion = modelo.predict(X)
 
+                        # Mostrar la predicción
                         st.subheader('💡 Recomendación de Stock')
-                        st.write(f"Stock Base Recomendado: {prediccion_base[-1]:.1f} unidades")
-                        st.write(f"Stock Ajustado (con margen de seguridad): {prediccion_final:.1f} unidades")
+                        st.write(f"Recomendación de Stock para el próximo periodo: {prediccion[0]:.2f} unidades")
 
                     except Exception as e:
                         st.error(f'❌ Error al predecir el stock: {str(e)}')
