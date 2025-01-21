@@ -13,11 +13,11 @@ st.set_page_config(
 # Personalización de estilo con CSS
 st.markdown("""
     <style>
-        /* Fondo de la página */
-        .reportview-container {
-            background-color: #F4F4F9;
+        /* Fondo principal de la página */
+        .css-1v3fvcr {
+            background-color: #F4F4F9; /* Fondo de la página */
         }
-
+        
         /* Barra lateral */
         .sidebar .sidebar-content {
             background-color: #2E8B57;
@@ -60,6 +60,19 @@ st.markdown("""
         .plotly-graph-div {
             background-color: white;
         }
+
+        /* Fondo de las métricas y otros elementos */
+        .stMetric, .stButton, .stSelectbox, .stDataFrame {
+            background-color: #FFFFFF;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        /* Fondos de los títulos de las secciones */
+        .stTextInput, .stSelectbox, .stTextArea {
+            background-color: #F9F9F9;
+        }
+        
     </style>
 """, unsafe_allow_html=True)
 
@@ -255,7 +268,6 @@ def main():
 
                     except Exception as e:
                         st.error(f'❌ Error al predecir el stock: {str(e)}')
-                        st.info('📌 Detalles del error para debugging: ' + str(e))
 
         else:
             st.warning("⚠️ No se ha entrenado el modelo aún. Entrénalo primero.")
@@ -291,6 +303,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
