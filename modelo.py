@@ -7,77 +7,74 @@ import pandas as pd
 
 def entrenar_y_evaluar(df):
     """
-    Entrena modelo para predecir stock necesario
-    
-    Args:
-        df (pd.DataFrame): DataFrame preparado con features y target
-    
-    Returns:
-        tuple: (modelo, resultados, métricas, importancia)
+    Entrena modelo para predecir stock necesario con características adicionales
     """
-    # Validar datos de entrada
-    if df.empty:
-        raise ValueError("El DataFrame está vacío")
-    
-    # Features para predecir stock
+    # Features originales y nuevos
     features = [
         'ventas_7d',           
         'variabilidad_ventas', 
         'tasa_perdida',        
         'dia_semana',          
         'mes',                 
-        'es_fin_semana'        
+        'es_fin_semana',
+        'ventas_14d',          # Tendencia más larga
+        'ventas_fin_semana',   # Patrón de fin de semana
+        'stock_medio',         # Stock promedio mantenido
+        'tasa_rotacion',       # Velocidad de rotación del stock
+        'tendencia_ventas'     # Tendencia de crecimiento/decrecimiento
     ]
-    
-    # Validar que existan todas las características necesarias
-    if any(feature not in df.columns for feature in features):
-        raise ValueError(f"Faltan algunas características requeridas: {features}")
     
     X = df[features].copy()
     y = df['stock_objetivo']
     
-    # Manejar valores nulos
-    X = X.fillna(0)
-    y = y.fillna(X['ventas_7d'] * 7)
+    # Manejar valores nulos con una estrategia más robusta
+    for col in X.columns:
+        if X[col].dtype in ['int64', 'float64']:
+            # Usar la mediana para outliers
+            X[col] = X[col].fillna(X[col].median())
     
     # Normalizar features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
     
-    # Split datos
+    # Split datos con stratificación por mes para mantener la distribución temporal
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42
-    )
-    
-    # Entrenar modelo
-    modelo = RandomForestRegressor(
-        n_estimators=200,
-        max_depth=15,
-        min_samples_split=4,
-        min_samples_leaf=2,
+        X_scaled, y, 
+        test_size=0.2, 
         random_state=42,
-        n_jobs=-1  # Usar todos los cores disponibles
+        stratify=df['mes']
     )
     
-    # Calcular cross validation scores
-    cv_scores = cross_val_score(modelo, X_scaled, y, cv=5, scoring='r2')
+    # Modelo con hiperparámetros optimizados
+    modelo = RandomForestRegressor(
+        n_estimators=300,      # Más árboles para mejor generalización
+        max_depth=12,          # Profundidad controlada para evitar overfitting
+        min_samples_split=5,   # Más muestras para split más robustos
+        min_samples_leaf=3,    # Más muestras por hoja para estabilidad
+        max_features='sqrt',   # Selección automática de features
+        random_state=42,
+        n_jobs=-1
+    )
     
-    # Entrenar modelo final
+    # Cross validation con más folds
+    cv_scores = cross_val_score(modelo, X_scaled, y, cv=7, scoring='r2')
+    
     modelo.fit(X_train, y_train)
     
-    # Predicciones
     predicciones_train = modelo.predict(X_train)
     predicciones_test = modelo.predict(X_test)
     
-    # Resultados
+    # Ajuste de predicciones para reducir stock insuficiente
+    factor_seguridad = 1.15  # 15% extra de stock para reducir insuficiencia
+    predicciones_test = predicciones_test * factor_seguridad
+    
     resultados = pd.DataFrame({
         'Stock Real': y_test,
         'Stock Predicho': predicciones_test,
         'Diferencia': abs(y_test - predicciones_test)
     })
     
-    # Métricas completas
     metricas = {
         'rmse_train': np.sqrt(mean_squared_error(y_train, predicciones_train)),
         'rmse_test': np.sqrt(mean_squared_error(y_test, predicciones_test)),
@@ -87,7 +84,6 @@ def entrenar_y_evaluar(df):
         'cv_scores_std': cv_scores.std()
     }
     
-    # Importancia features
     importancia = pd.DataFrame({
         'caracteristica': X.columns,
         'importancia': modelo.feature_importances_
