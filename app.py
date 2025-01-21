@@ -27,6 +27,9 @@ productos_dict = {
 def main():
     st.title('🥬 Predicción de Stock - Tienda de Verduras')
 
+    # Barra lateral para elegir entre las secciones
+    menu = st.sidebar.radio("Selecciona una opción", ["Entrenar Modelo", "Predicción de Stock", "Gráficos"])
+
     # Inicializar estado
     if 'modelo_entrenado' not in st.session_state:
         st.session_state.modelo_entrenado = False
@@ -45,15 +48,9 @@ def main():
                 st.error(f'❌ Error al cargar datos: {str(e)}')
                 st.info('📌 Verifica la conexión con Supabase y los datos disponibles')
                 return
-    
-    # Crear un selector de pestañas
-    pagina = st.selectbox(
-        "Selecciona una opción",
-        ["Entrenar Modelo", "Predicción de Stock", "Gráficos"]
-    )
 
     # Entrenamiento del Modelo
-    if pagina == "Entrenar Modelo":
+    if menu == "Entrenar Modelo":
         # Botón para entrenar el modelo
         if st.button('🚀 Entrenar Modelo de Stock', type='primary'):
             try:
@@ -139,7 +136,7 @@ def main():
                 st.error(f'❌ Error al mostrar resultados: {str(e)}')
 
     # Predicción de Stock
-    elif pagina == "Predicción de Stock":
+    elif menu == "Predicción de Stock":
         if st.session_state.modelo_entrenado:
             # Permitir seleccionar un producto
             producto_seleccionado = st.selectbox(
@@ -211,12 +208,13 @@ def main():
             st.warning("⚠️ No se ha entrenado el modelo aún. Entrénalo primero.")
 
     # Gráficos
-    elif pagina == "Gráficos":
+    elif menu == "Gráficos":
         st.subheader("📊 Gráficos de Ventas e Inventarios")
         # Aquí podrías agregar los gráficos que desees mostrar
 
 if __name__ == '__main__':
     main()
+
 
 
 
