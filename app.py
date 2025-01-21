@@ -143,10 +143,10 @@ def main():
             except Exception as e:
                 st.error(f'❌ Error al mostrar resultados: {str(e)}')
 
-    # Predicción de Stock
+     # Predicción de Stock
     elif pagina == "Predicción de Stock":
         if st.session_state.modelo_entrenado:
-            # Permitir seleccionar un producto (Ahora con los nombres)
+            # Permitir seleccionar un producto
             producto_seleccionado = st.selectbox(
                 "Selecciona un producto",
                 ["Tomate", "Pepino", "Zanahoria", "Lechuga", "Cebolla"]
@@ -161,31 +161,56 @@ def main():
             else:
                 # Mostrar información sobre el producto
                 st.subheader(f"Predicción de Stock para el Producto: {producto_seleccionado}")
-                st.write(f"Información del Producto:")
-                st.write(df_producto.head())  # Muestra las primeras filas del producto
-
+                
                 # Botón para hacer la predicción
                 if st.button('📦 Predecir Stock'):
                     try:
-                        # Preparar datos para la predicción
+                        # Preparar datos para la predicción usando la función actualizada
                         df_preparado = preparar_datos_modelo(df_producto)
-
+                        
                         # Verificar si el modelo está en session_state
                         if 'modelo' not in st.session_state:
                             st.error("❌ El modelo no está disponible. Por favor, entrene el modelo primero.")
                             return
 
-                        # Realizar la predicción usando el modelo entrenado
-                        modelo = st.session_state.modelo  # Ahora el modelo está en session_state
-                        X = df_preparado[['ventas_7d', 'variabilidad_ventas', 'tasa_perdida', 'dia_semana', 'mes', 'es_fin_semana']]
+                        # Realizar la predicción usando todas las características necesarias
+                        modelo = st.session_state.modelo
+                        X = df_preparado[[
+                            'ventas_7d',
+                            'variabilidad_ventas',
+                            'tasa_perdida',
+                            'dia_semana',
+                            'mes',
+                            'es_fin_semana',
+                            'ventas_14d',
+                            'ventas_fin_semana',
+                            'stock_medio',
+                            'tasa_rotacion',
+                            'tendencia_ventas'
+                        ]].iloc[-1:]  # Tomar solo la última fila para la predicción
+
                         prediccion = modelo.predict(X)
 
-                        # Mostrar la predicción
+                        # Mostrar la predicción y datos relevantes
                         st.subheader('💡 Recomendación de Stock')
-                        st.write(f"Recomendación de Stock para el próximo periodo: {prediccion[0]:.2f} unidades")
+                        st.write(f"Recomendación de Stock para el próximo periodo: {prediccion[0]:.0f} unidades")
+                        
+                        # Mostrar métricas adicionales que ayuden a entender la predicción
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Ventas promedio (7 días)", 
+                                    f"{X['ventas_7d'].iloc[0]:.1f}")
+                            st.metric("Tasa de rotación", 
+                                    f"{X['tasa_rotacion'].iloc[0]:.2f}")
+                        with col2:
+                            st.metric("Tendencia de ventas", 
+                                    f"{X['tendencia_ventas'].iloc[0]:.1%}")
+                            st.metric("Tasa de pérdida", 
+                                    f"{X['tasa_perdida'].iloc[0]:.1%}")
 
                     except Exception as e:
                         st.error(f'❌ Error al predecir el stock: {str(e)}')
+                        st.info('📌 Detalles del error para debugging: ' + str(e))
 
         else:
             st.warning("⚠️ No se ha entrenado el modelo aún. Entrénalo primero.")
