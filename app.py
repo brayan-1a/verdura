@@ -210,10 +210,35 @@ def main():
     # Gráficos
     elif menu == "Gráficos":
         st.subheader("📊 Gráficos de Ventas e Inventarios")
-        # Aquí podrías agregar los gráficos que desees mostrar
+        
+        # Gráfico de ventas por producto
+        st.subheader("Ventas Totales por Producto")
+        ventas_por_producto = st.session_state.df_ventas.groupby("producto_id")["cantidad_vendida"].sum().reset_index()
+        fig_ventas = px.bar(
+            ventas_por_producto,
+            x="producto_id",
+            y="cantidad_vendida",
+            labels={"producto_id": "Producto", "cantidad_vendida": "Ventas Totales"},
+            title="Ventas Totales por Producto"
+        )
+        st.plotly_chart(fig_ventas, use_container_width=True)
+        
+        # Gráfico de inventarios por producto
+        st.subheader("Inventarios a lo largo del tiempo")
+        inventarios_por_producto = st.session_state.df_ventas.groupby(["producto_id", "fecha_venta"])["inventario_final"].sum().reset_index()
+        fig_inventarios = px.line(
+            inventarios_por_producto,
+            x="fecha_venta",
+            y="inventario_final",
+            color="producto_id",
+            labels={"fecha_venta": "Fecha", "inventario_final": "Inventario Final"},
+            title="Evolución del Inventario por Producto"
+        )
+        st.plotly_chart(fig_inventarios, use_container_width=True)
 
 if __name__ == '__main__':
     main()
+
 
 
 
