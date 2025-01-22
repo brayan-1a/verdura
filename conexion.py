@@ -1,9 +1,13 @@
 from supabase import create_client
 import pandas as pd
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Configuración de Supabase
-SUPABASE_URL = "https://odlosqyzqrggrhvkdovj.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kbG9zcXl6cXJnZ3Jodmtkb3ZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwNjgyODksImV4cCI6MjA0NTY0NDI4OX0.z5btFX44Eu30kOBJj7eZKAmOUG62IrTcpXUVhMqK9Ck"
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
 def conectar_supabase():
     """Crear conexión con Supabase"""
