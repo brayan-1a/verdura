@@ -177,7 +177,7 @@ def main():
                            'Stock Predicho': 'Stock Predicho (unidades)'}
                 )
                 fig_predictions.add_shape(
-                    type='line', line=dict(dash='dash'),
+                    type='line', line=dict(dash='dash', color='red'),
                     x0=st.session_state.resultados['Stock Real'].min(),
                     y0=st.session_state.resultados['Stock Real'].min(),
                     x1=st.session_state.resultados['Stock Real'].max(),
